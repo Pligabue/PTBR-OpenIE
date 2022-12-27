@@ -4,7 +4,7 @@ import tensorflow as tf
 from .constants import MAX_SENTENCE_SIZE
 
 
-def main():
+def build_model():
     tokenizer = AutoTokenizer.from_pretrained("neuralmind/bert-base-portuguese-cased")
     bert = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased")
 
@@ -22,6 +22,3 @@ def main():
     )
 
     return model
-
-if __name__ == "__main__":
-    main()
