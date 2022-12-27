@@ -35,7 +35,7 @@ def format_sentence(sentence):
     }
 
 def format_data(sentences):
-    format_sentence(sentences[0])
+    return [format_sentence(sentence) for sentence in sentences]
 
 if __name__ == "__main__":
     with (PREDICATE_PREDICTION_DIR / "training_data.yml").open(encoding="utf-8") as f:
