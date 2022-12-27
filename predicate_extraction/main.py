@@ -15,5 +15,13 @@ def main():
     model = tf.keras.Model(inputs=token_ids, outputs=softmax)
     model.layers[1].trainable = False
 
+    model.compile(
+        optimizer=tf.keras.optimizers.SGD(),
+        loss=tf.keras.losses.CategoricalCrossentropy(),
+        metrics=[tf.keras.metrics.CategoricalCrossentropy()],
+    )
+
+    return model
+
 if __name__ == "__main__":
     main()
