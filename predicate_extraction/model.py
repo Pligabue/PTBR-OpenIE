@@ -1,7 +1,7 @@
 from transformers import TFAutoModel, AutoTokenizer
 import tensorflow as tf
 
-from .constants import MAX_SENTENCE_SIZE
+from .constants import MAX_SENTENCE_SIZE, BIO
 
 
 def build_model():
@@ -10,7 +10,7 @@ def build_model():
 
     token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
     embeddings = bert(token_ids)["last_hidden_state"]
-    feed_forward = tf.keras.layers.Dense(32)(embeddings)
+    feed_forward = tf.keras.layers.Dense(len(BIO))(embeddings)
     softmax = tf.keras.layers.Softmax()(feed_forward)
     model = tf.keras.Model(inputs=token_ids, outputs=softmax)
     model.layers[1].trainable = False
