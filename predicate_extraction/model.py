@@ -5,7 +5,6 @@ from .constants import MAX_SENTENCE_SIZE, BIO
 
 
 def build_model():
-    tokenizer = AutoTokenizer.from_pretrained("neuralmind/bert-base-portuguese-cased")
     bert = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased")
 
     token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
