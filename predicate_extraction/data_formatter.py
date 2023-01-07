@@ -21,9 +21,8 @@ class DataFormatter():
         return tf.constant([self.format_input(sentence) for sentence in sentences])
 
     def format_output(self, output):
-        predicted_tag_values = tf.math.argmax(output, 1) + 1
-        predicted_tags = [BIO(prediction).name for prediction in predicted_tag_values]
-        return predicted_tags
+        max_indexes = tf.math.argmax(output, 1)
+        return [{"tag": BIO(max_index+1).name, "score": token_output[max_index]} for token_output, max_index in zip(output, max_indexes)]
 
     def format_outputs(self, outputs):
         return [self.format_output(output) for output in outputs]
@@ -51,23 +50,32 @@ class DataFormatter():
             training_y.append(y)
         return tf.stack(training_x), tf.stack(training_y)
 
-    def print_annotated_sentence(self, sentence, tags):
+    def print_annotated_sentence(self, sentence, token_predictions, show_scores=False):
         token_ids = self.tokenizer.encode(sentence)
         tokens = self.tokenizer.convert_ids_to_tokens(token_ids)
         
         sentence_chunks = []
         annotation_chunks = []
-        for token, tag in zip(tokens, tags):
-            sentence_chunks.append(token)
-            annotation_chunks.append(f"{tag:<{len(token)}}")
+        score_chunks = []
+        for token, token_prediction in zip(tokens, token_predictions):
+            tag = token_prediction["tag"]
+            score = token_prediction["score"]
+            rounded_score = f"{score:.2} "[1:] if show_scores else None
+
+            length = max(len(token), len(rounded_score)) if show_scores else len(token)
+
+            sentence_chunks.append(f"{token:<{length}}")
+            annotation_chunks.append(f"{tag:<{length}}")
+            score_chunks.append(f"{rounded_score:<{length}}")
 
         token_sentence = " ".join(sentence_chunks)
         annotation = " ".join(annotation_chunks)
+        scores = " ".join(score_chunks)
         
-        print(token_sentence + "\n" + annotation)
+        print(token_sentence + "\n" + annotation + "\n" + scores) if show_scores else print(token_sentence + "\n" + annotation)
 
-    def print_annotated_sentences(self, sentences, outputs):
-        tag_sets = self.format_outputs(outputs)
-        for sentence, tags in zip(sentences, tag_sets):
-            self.print_annotated_sentence(sentence, tags)
+    def print_annotated_sentences(self, sentences, outputs, show_scores=False):
+        token_prediction_sets = self.format_outputs(outputs)
+        for sentence, token_predictions in zip(sentences, token_prediction_sets):
+            self.print_annotated_sentence(sentence, token_predictions, show_scores=show_scores)
     

@@ -37,7 +37,7 @@ class PredicateExtractor(DataFormatter):
         training_x, training_y = self.format_training_data(training_sentences)
         return self.model.fit(training_x, training_y, *args, **kwargs)
 
-    def predict(self, sentences):
+    def predict(self, sentences, show_scores=False):
         inputs = self.format_inputs(sentences)
         outputs = self.model.predict(inputs)
-        self.print_annotated_sentences(sentences, outputs)
+        self.print_annotated_sentences(sentences, outputs, show_scores=show_scores)
