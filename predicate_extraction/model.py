@@ -1,5 +1,6 @@
 from transformers import TFAutoModel
 import tensorflow as tf
+import math
 
 from .constants import MAX_SENTENCE_SIZE, BIO
 from .data_formatter import DataFormatter
@@ -33,9 +34,18 @@ class PredicateExtractor(DataFormatter):
     def summary(self):
         self.model.summary()
 
-    def fit(self, training_sentences, *args, **kwargs):
+    def fit(self, training_sentences, *args, epochs=20, early_stopping=False, callbacks=None, **kwargs):
         training_x, training_y = self.format_training_data(training_sentences)
-        return self.model.fit(training_x, training_y, *args, **kwargs)
+        
+        early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+            monitor='loss',
+            patience=math.ceil(epochs/33),
+            start_from_epoch=math.ceil(epochs/10),
+            min_delta=0.05
+        )
+        callbacks = callbacks or [early_stopping_callback] if early_stopping else []
+
+        return self.model.fit(training_x, training_y, *args, epochs=epochs, callbacks=callbacks, **kwargs)
 
     def predict(self, sentences, show_scores=False):
         inputs = self.format_inputs(sentences)
