@@ -40,9 +40,7 @@ class PredicateExtractor(DataFormatter):
         early_stopping_callback = tf.keras.callbacks.EarlyStopping(
             monitor='loss',
             patience=math.ceil(epochs/20 if epochs > 60 else 3),
-            start_from_epoch=math.ceil(epochs/10),
-            min_delta=0.0005
-        )
+            min_delta=0.0005)
         callbacks = callbacks or [early_stopping_callback] if early_stopping else []
 
         return self.model.fit(training_x, training_y, *args, epochs=epochs, callbacks=callbacks, **kwargs)
