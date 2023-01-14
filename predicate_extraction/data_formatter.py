@@ -59,8 +59,10 @@ class DataFormatter():
         score_chunks = []
         for token, token_prediction in zip(tokens, token_predictions):
             tag = token_prediction["tag"]
+
             score = token_prediction["score"]
-            rounded_score = f"{score:.2} "[1:] if show_scores else None
+            rounded_score = f"{score:.2} " if show_scores else None
+            rounded_score = rounded_score[1:] if rounded_score.startswith("0") else rounded_score
 
             length = max(len(token), len(rounded_score)) if show_scores else len(token)
 
