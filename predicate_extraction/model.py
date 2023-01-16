@@ -25,7 +25,7 @@ class PredicateExtractor(DataFormatter):
         self.model.layers[1].trainable = False
 
     def compile(self, optimizer=None, loss=None, metrics=None):
-        optimizer = optimizer or tf.keras.optimizers.SGD()
+        optimizer = optimizer or tf.keras.optimizers.SGD(learning_rate=0.02)
         loss = loss or tf.keras.losses.CategoricalCrossentropy()
         metrics = metrics or [tf.keras.metrics.CategoricalCrossentropy()]
         
@@ -45,7 +45,7 @@ class PredicateExtractor(DataFormatter):
 
         return self.model.fit(training_x, training_y, *args, epochs=epochs, callbacks=callbacks, **kwargs)
 
-    def predict(self, sentences, show_scores=False):
+    def predict(self, sentences, o_threshold=0.0, show_scores=False):
         inputs = self.format_inputs(sentences)
         outputs = self.model.predict(inputs)
-        self.print_annotated_sentences(sentences, outputs, show_scores=show_scores)
+        self.print_annotated_sentences(sentences, outputs, o_threshold=o_threshold, show_scores=show_scores)

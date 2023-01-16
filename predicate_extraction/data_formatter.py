@@ -20,12 +20,20 @@ class DataFormatter():
     def format_inputs(self, sentences):
         return tf.constant([self.format_input(sentence) for sentence in sentences])
 
-    def format_output(self, output):
-        max_indexes = tf.math.argmax(output, 1)
-        return [{"tag": BIO(max_index+1).name, "score": token_output[max_index]} for token_output, max_index in zip(output, max_indexes)]
+    def format_output(self, output, o_threshold=0.0):
+        results = []
+        max_indexes = tf.math.top_k(output, 2).indices.numpy()
+        for token_output, max_index in zip(output, max_indexes):
+            tag = BIO(max_index[0])
+            score = token_output[max_index[0]]
+            if tag == BIO.O and score < o_threshold:
+                tag = BIO(max_index[1])
+                score = token_output[max_index[1]]
+            results.append({"tag": tag.name, "score": score})
+        return results
 
-    def format_outputs(self, outputs):
-        return [self.format_output(output) for output in outputs]
+    def format_outputs(self, outputs, o_threshold=0.0):
+        return [self.format_output(output, o_threshold=o_threshold) for output in outputs]
 
     def format_training_sentence(self, sentence):
         split_sentence = self.split_on_predicate(sentence)
@@ -37,7 +45,7 @@ class DataFormatter():
 
         input_tokens = self.format_input(original_sentence)
         output_tags = [(BIO.B if i == predicate_start else BIO.I if predicate_start < i < predicate_end else BIO.O) for i, token in enumerate(input_tokens)]
-        encoded_output_tags = tf.one_hot([tag.value - 1 for tag in output_tags], len(BIO))
+        encoded_output_tags = tf.one_hot([tag.value for tag in output_tags], len(BIO))
         
         return input_tokens, encoded_output_tags
 
@@ -76,8 +84,8 @@ class DataFormatter():
         
         print(token_sentence + "\n" + annotation + "\n" + scores) if show_scores else print(token_sentence + "\n" + annotation)
 
-    def print_annotated_sentences(self, sentences, outputs, show_scores=False):
-        token_prediction_sets = self.format_outputs(outputs)
+    def print_annotated_sentences(self, sentences, outputs, o_threshold=0.0, show_scores=False):
+        token_prediction_sets = self.format_outputs(outputs, o_threshold=o_threshold)
         for sentence, token_predictions in zip(sentences, token_prediction_sets):
             self.print_annotated_sentence(sentence, token_predictions, show_scores=show_scores)
     
