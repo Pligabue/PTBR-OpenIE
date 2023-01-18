@@ -2,7 +2,7 @@ from transformers import TFAutoModel
 import tensorflow as tf
 import math
 
-from .constants import MAX_SENTENCE_SIZE, BIO
+from .constants import BIO, MAX_SENTENCE_SIZE, O_THRESHOLD
 from .data_formatter import DataFormatter
 
 class PredicateExtractor(DataFormatter):
@@ -45,7 +45,7 @@ class PredicateExtractor(DataFormatter):
 
         return self.model.fit(training_x, training_y, *args, epochs=epochs, callbacks=callbacks, **kwargs)
 
-    def predict(self, sentences, o_threshold=0.0, show_scores=False):
+    def predict(self, sentences, o_threshold=O_THRESHOLD, show_scores=False):
         inputs = self.format_inputs(sentences)
-        outputs = self.model.predict(inputs)
+        outputs: tf.Tensor = self.model.predict(inputs)
         self.print_annotated_sentences(sentences, outputs, o_threshold=o_threshold, show_scores=show_scores)
