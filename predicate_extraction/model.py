@@ -25,7 +25,7 @@ class PredicateExtractor(DataFormatter):
         self.model.layers[1].trainable = False
 
     def compile(self, optimizer=None, loss=None, metrics=None):
-        optimizer = optimizer or tf.keras.optimizers.SGD(learning_rate=0.02)
+        optimizer = optimizer or tf.keras.optimizers.SGD(learning_rate=0.01)
         loss = loss or tf.keras.losses.CategoricalCrossentropy()
         metrics = metrics or [tf.keras.metrics.CategoricalCrossentropy()]
         
