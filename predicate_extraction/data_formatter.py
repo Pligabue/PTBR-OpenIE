@@ -3,21 +3,21 @@ from transformers import AutoTokenizer
 import tensorflow as tf
 
 from .constants import BIO, PREDICATE_PATTERN, MAX_SENTENCE_SIZE, SPECIAL_TOKEN_IDS
-
+from .types import *
 
 class DataFormatter():
     def __init__(self) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained("neuralmind/bert-base-portuguese-cased")
 
-    def split_on_predicate(self, sentence):
+    def split_on_predicate(self, sentence) -> list[str]:
         split_sentence = re.split(PREDICATE_PATTERN, sentence)
         trimmed_split = [chunk.strip() for chunk in split_sentence]
         return trimmed_split
 
-    def format_input(self, sentence):
+    def format_input(self, sentence) -> SentenceInput:
         return self.tokenizer.encode(sentence, padding="max_length", max_length=MAX_SENTENCE_SIZE)
 
-    def format_inputs(self, sentences):
+    def format_inputs(self, sentences) -> tf.Tensor:
         return tf.constant([self.format_input(sentence) for sentence in sentences])
 
     def format_output(self, sentence_output) -> FormattedSentenceOutput:

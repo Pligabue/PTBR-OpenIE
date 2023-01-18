@@ -34,7 +34,7 @@ class PredicateExtractor(DataFormatter):
     def summary(self):
         self.model.summary()
 
-    def fit(self, training_sentences, *args, epochs=20, early_stopping=False, callbacks=None, **kwargs):
+    def fit(self, training_sentences: list[str], *args, epochs=20, early_stopping=False, callbacks=None, **kwargs):
         training_x, training_y = self.format_training_data(training_sentences)
         
         early_stopping_callback = tf.keras.callbacks.EarlyStopping(
