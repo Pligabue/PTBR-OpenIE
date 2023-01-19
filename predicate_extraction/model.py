@@ -2,8 +2,10 @@ from transformers import TFAutoModel
 import tensorflow as tf
 import math
 
-from .constants import BIO, MAX_SENTENCE_SIZE, O_THRESHOLD
+from .constants import MAX_SENTENCE_SIZE, O_THRESHOLD
+from .types import BIO
 from .data_formatter import DataFormatter
+
 
 class PredicateExtractor(DataFormatter):
     def __init__(self, *dense_layer_units: int) -> None:
@@ -13,14 +15,14 @@ class PredicateExtractor(DataFormatter):
 
         token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
         embeddings = bert(token_ids)["last_hidden_state"]
-        
+
         dense_layers = embeddings
         for layer_units in dense_layer_units:
             dense_layers = tf.keras.layers.Dense(layer_units)(dense_layers)
 
         final_dense = tf.keras.layers.Dense(len(BIO))(dense_layers)
         softmax = tf.keras.layers.Softmax()(final_dense)
-        
+
         self.model = tf.keras.Model(inputs=token_ids, outputs=softmax)
         self.model.layers[1].trainable = False
 
@@ -28,19 +30,20 @@ class PredicateExtractor(DataFormatter):
         optimizer = optimizer or tf.keras.optimizers.SGD(learning_rate=0.01)
         loss = loss or tf.keras.losses.CategoricalCrossentropy()
         metrics = metrics or [tf.keras.metrics.CategoricalCrossentropy()]
-        
+
         self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-    
+
     def summary(self):
         self.model.summary()
 
-    def fit(self, training_sentences: list[str], *args, epochs=20, early_stopping=False, callbacks=None, **kwargs):
-        training_x, training_y = self.format_training_data(training_sentences)
-        
+    def fit(self, training_sentences: list[str], *args, merge_repeated=True, epochs=20,
+            early_stopping=False, callbacks=None, **kwargs):
+        training_x, training_y = self.format_training_data(training_sentences, merge_repeated=merge_repeated)
+
         early_stopping_callback = tf.keras.callbacks.EarlyStopping(
             monitor='loss',
-            patience=math.ceil(epochs/10 if epochs > 100 else 10),
-            min_delta=0.0003)
+            patience=math.ceil(epochs / 10 if epochs > 100 else 10),
+            min_delta=0.0003)  # type: ignore
         callbacks = callbacks or [early_stopping_callback] if early_stopping else []
 
         return self.model.fit(training_x, training_y, *args, epochs=epochs, callbacks=callbacks, **kwargs)
