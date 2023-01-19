@@ -45,27 +45,52 @@ class DataFormatter():
             return BIO.S
         return BIO.O
 
-    def format_training_sentence(self, sentence) -> Tuple[SentenceInput, tf.Tensor]:
+    def add_training_sentence_data(self, sentence: str, sentence_map: SentenceMap, merge_repeated=True):
         split_sentence = self.split_on_predicate(sentence)
         original_sentence = " ".join(split_sentence)
+        key = original_sentence if merge_repeated else sentence
+
+        if original_sentence not in sentence_map:
+            input_tokens = self.format_input(original_sentence)
+            sentence_map[key] = {"input": input_tokens, "output": tf.zeros((len(input_tokens), len(BIO)))}
+        else:
+            input_tokens = sentence_map[key]["input"]
 
         token_sets = [self.tokenizer.encode(chunk, add_special_tokens=False) for chunk in split_sentence]
         predicate_start = len(token_sets[0]) + 1    # 1 is added to account for the [CLS] token that is added later
         predicate_end = predicate_start + len(token_sets[1])
 
-        input_tokens = self.format_input(original_sentence)
-        output_tags = [self.token_to_tag(token, i, predicate_start, predicate_end) for i, token in enumerate(input_tokens)]
+        output_tags = [self.token_to_tag(t, i, predicate_start, predicate_end) for i, t in enumerate(input_tokens)]
         encoded_output_tags = tf.one_hot([tag.value for tag in output_tags], len(BIO))
-        
-        return input_tokens, encoded_output_tags
+        sentence_map[key]["output"] += encoded_output_tags
 
-    def format_training_data(self, training_sentences: list[str]) -> Tuple(tf.Tensor, tf.Tensor):
-        training_x: list[SentenceInput] = []
-        training_y: list[tf.Tensor] = []
+    def normalize_training_output(self, training_sentence_output: tf.Tensor, weighted=False):
+        output = training_sentence_output
+        if not weighted:
+            # After add_training_sentence_data, if a token appears once as B and twice as O, its output might
+            # look something like [1, 0, 2, 0], the first position representing B and the third representing O.
+            # However, we are not interested in counting the number of appearences, just if there was an
+            # appearence, so we clip the output, generating [1, 0, 1, 0].
+            output = tf.clip_by_value(training_sentence_output, 0.0, 1.0)
+
+        # The count_nonzero function returns a tensor with the number of different tags that were identified
+        # for each token. Using the previous example, count_nonzero would return 2, as the token appears as
+        # B and as O. What the repeat funcion then does is to repeat this 2 so it has the same shape as the
+        # clipped output, so we can do a element-wise divison. Using the previous example, we would be able
+        # to do [1, 0, 1, 0] / [2, 2, 2, 2] => [0.5, 0, 0.5, 0]).
+        divisors = tf.math.reduce_sum(output, axis=1, keepdims=True)
+        division_matrix = tf.repeat(divisors, len(BIO), axis=1)
+
+        return output / division_matrix
+
+    def format_training_data(self, training_sentences: list[str], merge_repeated=True,
+                             weighted_merge=False) -> tuple[tf.Tensor, tf.Tensor]:
+        sentence_map: SentenceMap = {}  # Keeps track of sentences that are repeated with different predicates
         for sentence in training_sentences:
-            x, y = self.format_training_sentence(sentence)
-            training_x.append(x)
-            training_y.append(y)
+            self.add_training_sentence_data(sentence, sentence_map, merge_repeated=merge_repeated)
+
+        training_x = [v["input"] for v in sentence_map.values()]
+        training_y = [self.normalize_training_output(v["output"], weighted_merge) for v in sentence_map.values()]
         return tf.stack(training_x), tf.stack(training_y)
 
     def print_annotated_sentence(self, sentence: str, sentence_output: tf.Tensor, o_threshold=0.0, show_scores=False):
