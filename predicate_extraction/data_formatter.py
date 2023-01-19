@@ -12,7 +12,7 @@ class DataFormatter():
 
     def split_on_predicate(self, sentence) -> list[str]:
         split_sentence = re.split(PREDICATE_PATTERN, sentence)
-        trimmed_split = [chunk.strip() for chunk in split_sentence]
+        trimmed_split = [chunk.strip() for chunk in split_sentence if chunk]
         return trimmed_split
 
     def format_input(self, sentence) -> SentenceInput:
