@@ -5,24 +5,33 @@ from transformers import AutoTokenizer
 
 from typing import Union
 
-from .constants import PREDICATE_PATTERN, MAX_SENTENCE_SIZE, SPECIAL_TOKEN_IDS
-from .types import BIO, SentenceMap, SentenceInput, FormattedTokenOutput, FormattedSentenceOutput
+from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
+                         SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
+
+from .types import (BIO, SentenceMap, SentenceInput, SentenceInputs,
+                    FormattedTokenOutput,FormattedSentenceOutput)
 
 
 class DataFormatter():
     def __init__(self) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained("neuralmind/bert-base-portuguese-cased")
 
+    #################
+    # INPUT SECTION #
+    #################
+
     def split_on_predicate(self, sentence) -> list[str]:
+        sentence = re.sub(SUBJECT_PATTERN, r"\1", sentence)
+        sentence = re.sub(OBJECT_PATTERN, r"\1", sentence)
         split_sentence = re.split(PREDICATE_PATTERN, sentence)
-        trimmed_split = [chunk.strip() for chunk in split_sentence if chunk]
+        trimmed_split = [chunk.strip() for chunk in split_sentence]
         return trimmed_split
 
-    def format_input(self, sentence) -> SentenceInput:
+    def format_input(self, sentence: str) -> SentenceInput:
         return self.tokenizer.encode(sentence, padding="max_length", max_length=MAX_SENTENCE_SIZE)
 
-    def format_inputs(self, sentences) -> tf.Tensor:
-        return tf.constant([self.format_input(sentence) for sentence in sentences])
+    def format_inputs(self, sentences: list[str]) -> SentenceInputs:
+        return [self.format_input(sentence) for sentence in sentences]
 
     def format_output(self, sentence_output) -> FormattedSentenceOutput:
         sentence_result: FormattedSentenceOutput = []

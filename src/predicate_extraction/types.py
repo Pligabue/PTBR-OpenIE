@@ -3,6 +3,7 @@ from typing import Tuple, TypedDict, Union
 import tensorflow as tf
 
 SentenceInput = list[int]
+SentenceInputs = list[SentenceInput]
 SentenceMapValue = TypedDict("SentenceMapValue", {"input": SentenceInput, "output": tf.Tensor})
 SentenceMap = dict[Union[str, int], SentenceMapValue]
 ModelInput = list[SentenceInput]
