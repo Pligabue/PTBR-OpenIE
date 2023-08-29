@@ -68,7 +68,7 @@ class PredicateExtractor(DataFormatter):
     def summary(self):
         self.model.summary()
 
-    def fit(self, training_sentences: list[str], *args, merge_repeated=True, epochs=20,
+    def fit(self, training_sentences: list[str], *args, merge_repeated=False, epochs=20,
             early_stopping=False, callbacks=None, **kwargs):
         training_x, training_y = self.format_training_data(training_sentences, merge_repeated=merge_repeated)
 
