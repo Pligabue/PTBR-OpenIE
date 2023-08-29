@@ -1,17 +1,43 @@
-from transformers import TFAutoModel
-import tensorflow as tf
 import math
+import tensorflow as tf
+from transformers.models.auto.modeling_tf_auto import TFAutoModel
 
+from typing import cast, Optional
+
+from ..constants import PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
 from .constants import MAX_SENTENCE_SIZE, O_THRESHOLD
-from .types import BIO
 from .data_formatter import DataFormatter
+
+from .types import BIO
 
 
 class PredicateExtractor(DataFormatter):
-    def __init__(self, *dense_layer_units: int) -> None:
+    def __init__(self, *dense_layer_units: int, name: Optional[str] = None) -> None:
         super().__init__()
 
-        bert = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased")
+        if name:
+            self._load_model(name)
+        else:
+            self._config_model(*dense_layer_units)
+
+    @classmethod
+    def load(cls, name: str = DEFAULT_MODEL_NAME):
+        path = PREDICATE_EXTRACTION_MODEL_DIR / name
+        if path.is_dir():
+            return cls(name=name)
+        else:
+            raise Exception(f"Model {str} does not exist.")
+
+    def _load_model(self, name: str):
+        path = PREDICATE_EXTRACTION_MODEL_DIR / name
+        if path.is_dir():
+            model = tf.keras.models.load_model(path)
+            self.model = cast(tf.keras.Model, model)
+        else:
+            raise Exception(f"Model {str} does not exist.")
+
+    def _config_model(self, *dense_layer_units: int):
+        bert = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased").bert
 
         token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
         embeddings = bert(token_ids)["last_hidden_state"]
