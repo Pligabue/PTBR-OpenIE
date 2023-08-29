@@ -52,6 +52,12 @@ class PredicateExtractor(DataFormatter):
         self.model = tf.keras.Model(inputs=token_ids, outputs=softmax)
         self.model.layers[1].trainable = False
 
+    def save(self, name: str = DEFAULT_MODEL_NAME):
+        path = PREDICATE_EXTRACTION_MODEL_DIR / name
+        if not PREDICATE_EXTRACTION_MODEL_DIR.is_dir():
+            PREDICATE_EXTRACTION_MODEL_DIR.mkdir()
+        self.model.save(path)
+
     def compile(self, optimizer=None, loss=None, metrics=None):
         optimizer = optimizer or tf.keras.optimizers.SGD(learning_rate=0.01)
         loss = loss or tf.keras.losses.CategoricalCrossentropy()
