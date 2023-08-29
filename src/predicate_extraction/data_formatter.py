@@ -1,6 +1,9 @@
 import re
-from transformers import AutoTokenizer
+import numpy as np
 import tensorflow as tf
+from transformers import AutoTokenizer
+
+from typing import Union
 
 from .constants import PREDICATE_PATTERN, MAX_SENTENCE_SIZE, SPECIAL_TOKEN_IDS
 from .types import BIO, SentenceMap, SentenceInput, FormattedTokenOutput, FormattedSentenceOutput
@@ -93,34 +96,46 @@ class DataFormatter():
         training_y = [self.normalize_training_output(v["output"], weighted_merge) for v in sentence_map.values()]
         return tf.stack(training_x), tf.stack(training_y)
 
+    ##################
+    # OUTPUT SECTION #
+    ##################
+
+    def print_elements(self, tokens: list[str], tags: list[BIO], scores: Union[list[float], None] = None):
+        lines: list[list[str]] = []
+        lines.append(tokens)
+        lines.append([tag.name for tag in tags])
+        if scores:
+            score_chunks = []
+            for score in scores:
+                score_chunk = f"{score:.2} "
+                score_chunk = score_chunk[1:] if score < 1.0 else score_chunk
+                score_chunks.append(score_chunk)
+            lines.append(score_chunks)
+
+        chunk_lengths = [len(max(column, key=len)) for column in np.array(lines, dtype="object").transpose()]  # ignore
+        for line in lines:
+            for chunk, length in zip(line, chunk_lengths):
+                print(chunk.ljust(length), end=" ")
+            print()
+
     def print_annotated_sentence(self, sentence: str, sentence_output: tf.Tensor, o_threshold=0.0, show_scores=False):
         token_ids = self.tokenizer.encode(sentence)
-        tokens = self.tokenizer.convert_ids_to_tokens(token_ids)
+        tokens: list[str] = self.tokenizer.convert_ids_to_tokens(token_ids)  # type: ignore
         formatted_sentence_output = self.format_output(sentence_output)
 
-        sentence_chunks = []
-        annotation_chunks = []
-        score_chunks = []
-        for token, token_output in zip(tokens, formatted_sentence_output):
+        tags = []
+        scores = []
+        for token_output in formatted_sentence_output[:len(tokens)]:
             tag, score = token_output[0]
             if tag == BIO.O and score < o_threshold:
                 tag, score = token_output[1]
+            tags.append(tag)
+            scores.append(score)
 
-            rounded_score = f"{score:.2} " if show_scores else ""
-            rounded_score = rounded_score[1:] if rounded_score.startswith("0") else rounded_score
-
-            length = max(len(token), len(rounded_score)) if show_scores else len(token)
-
-            sentence_chunks.append(f"{token:<{length}}")
-            annotation_chunks.append(f"{tag.name:<{length}}")
-            score_chunks.append(f"{rounded_score:<{length}}")
-
-        token_sentence = " ".join(sentence_chunks)
-        annotation = " ".join(annotation_chunks)
-        scores = " ".join(score_chunks)
-
-        annotated_sentence = "\n".join([token_sentence, annotation, scores])
-        print(annotated_sentence) if show_scores else print(token_sentence + "\n" + annotation)
+        if show_scores:
+            self.print_elements(tokens, tags, scores)
+        else:
+            self.print_elements(tokens, tags)
 
     def print_annotated_sentences(self, sentences: list[str], sentence_outputs: tf.Tensor,
                                   o_threshold=0.0, show_scores=False):
