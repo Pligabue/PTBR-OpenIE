@@ -1,3 +1,4 @@
+import itertools
 import re
 import numpy as np
 import tensorflow as tf
@@ -9,7 +10,7 @@ from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
 from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceInputs,
-                    FormattedTokenOutput, FormattedSentenceOutput, Variation)
+                    FormattedTokenOutput, FormattedSentenceOutput, Variation, SentenceVariations)
 
 
 class DataFormatter():
@@ -177,3 +178,23 @@ class DataFormatter():
         has_padding = sequence[0] == BIO.S and sequence[-1] == BIO.S
         correct_length = len(sequence) == MAX_SENTENCE_SIZE
         return has_predicate and has_padding and correct_length
+
+    def build_sentence_variations(self, sentence_output: FormattedSentenceOutput, acceptance_threshold=0.2):
+        filtered_sentence_output = self.get_filtered_sentence_output(sentence_output, acceptance_threshold)
+        variations: SentenceVariations = [[]]
+        for token_output in filtered_sentence_output:
+            tags = [prediction[0] for prediction in token_output]
+            combinations = itertools.product(variations, tags)
+            variations = [var + [tag] for var, tag in combinations if self.addition_is_valid(var, tag)]
+
+        valid_variations = [variation for variation in variations if self.sequence_is_valid(variation)]
+        return valid_variations
+
+    def build_variations(self, sentence_outputs: tf.Tensor, acceptance_threshold=0.2) -> list[SentenceVariations]:
+        formatted_sentence_outputs = self.format_outputs(sentence_outputs)
+        variations: list[SentenceVariations] = []
+        for formatted_sentence_output in formatted_sentence_outputs:
+            sentence_variations = self.build_sentence_variations(formatted_sentence_output, acceptance_threshold)
+            variations.append(sentence_variations)
+
+        return variations

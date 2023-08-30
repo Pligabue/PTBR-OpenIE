@@ -20,3 +20,6 @@ class BIO(Enum):
 TokenPrediction = tuple[BIO, float]
 FormattedTokenOutput = list[TokenPrediction]
 FormattedSentenceOutput = list[FormattedTokenOutput]
+
+Variation = list[BIO]
+SentenceVariations = list[Variation]
