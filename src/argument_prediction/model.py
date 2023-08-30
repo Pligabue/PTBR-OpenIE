@@ -7,8 +7,8 @@ from typing import cast, Optional
 from ..constants import MAX_SENTENCE_SIZE, ARGUMENT_PREDICTION_MODEL_DIR, DEFAULT_MODEL_NAME
 from ..predicate_extraction.types import ArgPredInputs
 
-from .constants import N_HEADS
-from .types import BIO
+from .constants import N_HEADS, ACCEPTANCE_THRESHOLD
+from .types import BIO, ArgPredOutputs
 from .data_formatter import DataFormatter
 
 
@@ -102,3 +102,15 @@ class ArgumentPredictor(DataFormatter):
         _, sentences, predicate_masks = inputs
         model_inputs = [tf.constant(sentences), tf.constant(predicate_masks)]
         return self.model.predict(model_inputs)
+
+    def __call__(self, inputs: ArgPredInputs, acceptance_threshold=ACCEPTANCE_THRESHOLD) -> ArgPredOutputs:
+        outputs: tf.Tensor = self.predict(inputs)  # type: ignore
+        subject_mask_sets, object_mask_sets = self.build_masks(outputs, acceptance_threshold=acceptance_threshold)
+
+        triples: ArgPredOutputs = []
+        results = zip(*inputs, subject_mask_sets, object_mask_sets)
+        for sentence_id, tokens, predicate_mask, sub_mask_set, obj_mask_set in results:
+            for sub_mask, obj_mask in zip(sub_mask_set, obj_mask_set):
+                triple = (sentence_id, tokens, predicate_mask, sub_mask, obj_mask)
+                triples.append(triple)
+        return triples
