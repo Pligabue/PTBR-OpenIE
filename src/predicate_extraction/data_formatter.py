@@ -140,3 +140,20 @@ class DataFormatter():
                                   o_threshold=0.0, show_scores=False):
         for sentence, sentence_output in zip(sentences, sentence_outputs):
             self.print_annotated_sentence(sentence, sentence_output, o_threshold=o_threshold, show_scores=show_scores)
+
+    ###############################
+    # ARGUMENT PREDICTION SECTION #
+    ###############################
+
+    def get_filtered_sentence_output(self, sentence_output: FormattedSentenceOutput,
+                                     acceptance_threshold=0.2) -> FormattedSentenceOutput:
+        filtered_sentence_output = []
+        for token_output in sentence_output:
+            tags_above_threshold = [pred for pred in token_output if pred[1] > acceptance_threshold]
+            if len(tags_above_threshold) == 0:
+                tags_above_threshold.append(token_output[0])
+                # If no tag is above the threshold, take the one with
+                # the hightest score (the list is sorted).
+            filtered_sentence_output.append(tags_above_threshold)
+
+        return filtered_sentence_output

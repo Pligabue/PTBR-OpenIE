@@ -17,5 +17,6 @@ class BIO(Enum):
     S = 3
 
 
-FormattedTokenOutput = list[Tuple[BIO, float]]
+TokenPrediction = tuple[BIO, float]
+FormattedTokenOutput = list[TokenPrediction]
 FormattedSentenceOutput = list[FormattedTokenOutput]
