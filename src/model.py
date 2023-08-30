@@ -67,3 +67,10 @@ class TripleExtractor(DataFormatter):
         arg_pred_inputs = self.predicate_extractor(sentences, acceptance_threshold=pred_threshold)
         outputs = self.argument_predictor(arg_pred_inputs, acceptance_threshold=arg_threshold)
         return outputs
+
+    def annotate_sentences(self, sentences: list[str], pred_threshold=0.2, arg_threshold=0.15):
+        outputs = self.predict(sentences, pred_threshold=pred_threshold, arg_threshold=arg_threshold)
+        for sentence_id, tokens, pred_masks, subj_mask, obj_mask in outputs:
+            annotation = self.build_annotation(sentence_id, tokens, pred_masks, subj_mask, obj_mask)
+            print(annotation)
+            print()
