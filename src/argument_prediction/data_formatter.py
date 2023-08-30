@@ -1,3 +1,4 @@
+import itertools
 import re
 import tensorflow as tf
 from transformers import AutoTokenizer, TFAutoModel, TFBertModel
@@ -8,8 +9,10 @@ from ..predicate_extraction.types import SentenceInput, SentenceInputs, Predicat
 from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
-from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOutput, SentenceMap,
-                    SentenceMapValue, Span)
+from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOutput, Mask,
+                    Masks, SubjectMask, SubjectMasks, ObjectMask, ObjectMasks, SubjectMaskSets,
+                    ObjectMaskSets, MaskSets, SentenceMap, SentenceMapValue, SentenceVariations,
+                    Span, Variation)
 
 
 class DataFormatter():
@@ -109,3 +112,117 @@ class DataFormatter():
 
     def format_outputs(self, outputs):
         return [self.format_output(output) for output in outputs]
+
+    ###########
+    # TRIPLES #
+    ###########
+
+    def get_filtered_sentence_output(self, sentence_output: FormattedSentenceOutput,
+                                     acceptance_threshold=0.2) -> FormattedSentenceOutput:
+        filtered_sentence_output = []
+        for token_output in sentence_output:
+            tags_above_threshold = [pred for pred in token_output if pred[1] > acceptance_threshold]
+            if len(tags_above_threshold) == 0:
+                tags_above_threshold.append(token_output[0])
+                # If no tag is above the threshold, take the one with
+                # the hightest score (the list is sorted).
+            filtered_sentence_output.append(tags_above_threshold)
+
+        return filtered_sentence_output
+
+    def addition_is_valid(self, sequence: Variation, tag: BIO) -> bool:
+        if not sequence:
+            return tag == BIO.S
+
+        if BIO.SB in sequence and tag == BIO.SB:
+            return False
+        if BIO.OB in sequence and tag == BIO.OB:
+            return False
+
+        last_tag = sequence[-1]
+        if last_tag == BIO.SB or last_tag == BIO.SI:
+            return tag == BIO.O or tag == BIO.SI
+        if last_tag == BIO.OB or last_tag == BIO.OI:
+            return tag == BIO.O or tag == BIO.OI
+        if last_tag == BIO.O or last_tag == BIO.S:
+            return tag != BIO.SI and tag != BIO.OI
+        return True
+
+    def sequence_is_valid(self, sequence: Variation) -> bool:
+        has_subject = BIO.SB in sequence
+        has_object = BIO.OB in sequence
+        has_padding = sequence[0] == BIO.S and sequence[-1] == BIO.S
+        correct_length = len(sequence) == MAX_SENTENCE_SIZE
+        return has_subject and has_object and has_padding and correct_length
+
+    def build_sentence_variations(self, sentence_output: FormattedSentenceOutput, acceptance_threshold=0.2):
+        filtered_sentence_output = self.get_filtered_sentence_output(sentence_output, acceptance_threshold)
+        variations: SentenceVariations = [[]]
+        for token_output in filtered_sentence_output:
+            tags = [pred[0] for pred in token_output]
+            combinations = itertools.product(variations, tags)
+            variations = [var + [tag] for var, tag in combinations if self.addition_is_valid(var, tag)]
+
+        valid_variations = [variation for variation in variations if self.sequence_is_valid(variation)]
+        return valid_variations
+
+    def build_variations(self, sentence_outputs: tf.Tensor, acceptance_threshold=0.2) -> list[SentenceVariations]:
+        formatted_sentence_outputs = self.format_outputs(sentence_outputs)
+        variations: list[SentenceVariations] = []
+        for formatted_sentence_output in formatted_sentence_outputs:
+            sentence_variations = self.build_sentence_variations(formatted_sentence_output, acceptance_threshold)
+            variations.append(sentence_variations)
+        return variations
+
+    def get_superset(self, mask_a: Mask, mask_b: Mask):
+        a_start = mask_a.index(True)
+        a_end = a_start + mask_a.count(True)
+        b_start = mask_b.index(True)
+        b_end = b_start + mask_b.count(True)
+
+        if (a_start <= b_start and a_end > b_end) or (a_start < b_start and a_end >= b_end):
+            return mask_a
+        if (b_start <= a_start and b_end > a_end) or (b_start < a_start and b_end >= a_end):
+            return mask_b
+        return None
+
+    def replace_subsets(self, masks: Masks):
+        n_masks = len(masks)
+        replaced_masks = masks[:]
+        for i in range(n_masks):
+            for j in range(i + 1, n_masks):
+                mask = replaced_masks[i]
+                other_mask = replaced_masks[j]
+                if superset_mask := self.get_superset(mask, other_mask):
+                    replaced_masks[i] = superset_mask
+                    replaced_masks[j] = superset_mask
+        return replaced_masks
+
+    def remove_repeated(self, subj_masks: SubjectMasks, obj_masks: ObjectMasks) -> tuple[SubjectMasks, ObjectMasks]:
+        mask_map: dict[str, tuple[SubjectMask, ObjectMask]] = {}
+        for subj_mask, obj_mask in zip(subj_masks, obj_masks):
+            key = "".join([str(v) for v in subj_mask]) + "".join([str(v) for v in obj_mask])
+            mask_map[key] = subj_mask, obj_mask
+        new_subj_masks = [v[0] for v in mask_map.values()]
+        new_obj_masks = [v[1] for v in mask_map.values()]
+        return new_subj_masks, new_obj_masks  # type: ignore
+
+    def build_masks(self, sentence_outputs: tf.Tensor, acceptance_threshold=0.2) -> MaskSets:
+        sentence_variation_sets = self.build_variations(sentence_outputs, acceptance_threshold)
+        subject_target_tags = (BIO.SB, BIO.SI)
+        object_target_tags = (BIO.OB, BIO.OI)
+
+        sentence_subject_mask_sets: SubjectMaskSets = []
+        sentence_object_mask_sets: ObjectMaskSets = []
+        for sentence_variations in sentence_variation_sets:
+            subject_masks: SubjectMasks = []
+            object_masks: ObjectMasks = []
+            for variation in sentence_variations:
+                subject_masks.append([tag in subject_target_tags for tag in variation])
+                object_masks.append([tag in object_target_tags for tag in variation])
+            subject_masks = self.replace_subsets(subject_masks)
+            object_masks = self.replace_subsets(object_masks)
+            subject_masks, object_masks = self.remove_repeated(subject_masks, object_masks)
+            sentence_subject_mask_sets.append(subject_masks)
+            sentence_object_mask_sets.append(object_masks)
+        return sentence_subject_mask_sets, sentence_object_mask_sets

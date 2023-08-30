@@ -1,5 +1,8 @@
+from enum import Enum
 from typing import TypedDict, Union
 import tensorflow as tf
+
+from ..predicate_extraction.types import SentenceId, SentenceInput, PredicateMask
 
 TrainingX = list[tf.Tensor]
 TrainingY = tf.Tensor
@@ -21,3 +24,18 @@ class BIO(Enum):
 TokenPrediction = tuple[BIO, float]
 FormattedTokenOutput = list[TokenPrediction]
 FormattedSentenceOutput = list[FormattedTokenOutput]
+
+Variation = list[BIO]
+SentenceVariations = list[Variation]
+Mask = list[bool]
+Masks = list[Mask]
+SubjectMask = Mask
+SubjectMasks = list[SubjectMask]
+SubjectMaskSets = list[SubjectMasks]
+ObjectMask = Mask
+ObjectMasks = list[ObjectMask]
+ObjectMaskSets = list[ObjectMasks]
+MaskSets = tuple[SubjectMaskSets, ObjectMaskSets]
+
+ArgPredOutput = tuple[SentenceId, SentenceInput, PredicateMask, SubjectMask, ObjectMask]
+ArgPredOutputs = list[ArgPredOutput]
