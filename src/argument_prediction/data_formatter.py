@@ -8,7 +8,8 @@ from ..predicate_extraction.types import SentenceInput, SentenceInputs, Predicat
 from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
-from .types import BIO, TrainingData, SentenceMapValue, SentenceMap, Span
+from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOutput, SentenceMap,
+                    SentenceMapValue, Span)
 
 
 class DataFormatter():
@@ -89,3 +90,22 @@ class DataFormatter():
         training_x = [tf.constant(sentence_inputs), tf.constant(predicate_masks)]
         training_y = [self.normalize_training_output(sentence_map[key], weighted_merge) for key in keys]
         return training_x, tf.stack(training_y)
+
+    ##################
+    # OUTPUT SECTION #
+    ##################
+
+    def format_output(self, sentence_output) -> FormattedSentenceOutput:
+        sentence_result: FormattedSentenceOutput = []
+        max_indexes = tf.math.top_k(sentence_output, len(BIO)).indices.numpy()
+        for token_output, max_index in zip(sentence_output, max_indexes):
+            result: FormattedTokenOutput = []
+            for i in max_index:
+                tag = BIO(i)
+                score = token_output[i]
+                result.append((tag, score))
+            sentence_result.append(result)
+        return sentence_result
+
+    def format_outputs(self, outputs):
+        return [self.format_output(output) for output in outputs]

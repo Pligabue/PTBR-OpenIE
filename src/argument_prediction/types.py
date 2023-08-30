@@ -16,3 +16,8 @@ class BIO(Enum):
     OI = 3
     O = 4
     S = 5
+
+
+TokenPrediction = tuple[BIO, float]
+FormattedTokenOutput = list[TokenPrediction]
+FormattedSentenceOutput = list[FormattedTokenOutput]
