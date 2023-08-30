@@ -82,3 +82,8 @@ class PredicateExtractor(DataFormatter):
 
     def predict(self, inputs: SentenceInputs) -> tf.Tensor:
         return self.model.predict(inputs)
+
+    def annotate_sentences(self, sentences: list[str], o_threshold=O_THRESHOLD, show_scores=False):
+        inputs = self.format_inputs(sentences)
+        outputs: tf.Tensor = self.predict(inputs)
+        self.print_annotated_sentences(sentences, outputs, o_threshold=o_threshold, show_scores=show_scores)
