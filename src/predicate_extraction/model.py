@@ -4,11 +4,11 @@ from transformers.models.auto.modeling_tf_auto import TFAutoModel
 
 from typing import cast, Optional
 
-from ..constants import PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
-from .constants import MAX_SENTENCE_SIZE, O_THRESHOLD
+from ..constants import MAX_SENTENCE_SIZE, PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from .constants import ACCEPTANCE_THRESHOLD, O_THRESHOLD
 from .data_formatter import DataFormatter
 
-from .types import BIO, SentenceInputs
+from .types import BIO, ArgPredInputs, PredicateMasks, SentenceIds, SentenceInputs
 
 
 class PredicateExtractor(DataFormatter):
@@ -87,3 +87,22 @@ class PredicateExtractor(DataFormatter):
         inputs = self.format_inputs(sentences)
         outputs: tf.Tensor = self.predict(inputs)
         self.print_annotated_sentences(sentences, outputs, o_threshold=o_threshold, show_scores=show_scores)
+
+    def __call__(self, sentences: list[str], acceptance_threshold=ACCEPTANCE_THRESHOLD) -> ArgPredInputs:
+        inputs = self.format_inputs(sentences)
+        outputs = self.predict(inputs)
+        mask_sets = self.build_predicate_masks(outputs, acceptance_threshold=acceptance_threshold)
+
+        sentence_ids: SentenceIds = []
+        sentence_inputs: SentenceInputs = []
+        masks: PredicateMasks = []
+
+        current_id = 0
+        for i, m_set in zip(inputs, mask_sets):
+            for mask in m_set:
+                sentence_ids.append(current_id)
+                sentence_inputs.append(i)
+                masks.append(mask)
+            current_id += 1
+
+        return sentence_ids, sentence_inputs, masks

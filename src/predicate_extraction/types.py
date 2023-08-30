@@ -3,6 +3,8 @@ import tensorflow as tf
 
 from typing import TypedDict, Union
 
+SentenceId = int
+SentenceIds = list[SentenceId]
 SentenceInput = list[int]
 SentenceInputs = list[SentenceInput]
 SentenceMapValue = TypedDict("SentenceMapValue", {"input": SentenceInput, "output": tf.Tensor, "count": int})
@@ -25,3 +27,4 @@ Variation = list[BIO]
 SentenceVariations = list[Variation]
 PredicateMask = list[bool]
 PredicateMasks = list[PredicateMask]
+ArgPredInputs = tuple[SentenceIds, SentenceInputs, PredicateMasks]
