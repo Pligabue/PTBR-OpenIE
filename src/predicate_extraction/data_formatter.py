@@ -33,21 +33,6 @@ class DataFormatter():
     def format_inputs(self, sentences: list[str]) -> SentenceInputs:
         return [self.format_input(sentence) for sentence in sentences]
 
-    def format_output(self, sentence_output) -> FormattedSentenceOutput:
-        sentence_result: FormattedSentenceOutput = []
-        max_indexes = tf.math.top_k(sentence_output, len(BIO)).indices.numpy()
-        for token_output, max_index in zip(sentence_output, max_indexes):
-            result: FormattedTokenOutput = []
-            for i in max_index:
-                tag = BIO(i)
-                score = token_output[i]
-                result.append((tag, score))
-            sentence_result.append(result)
-        return sentence_result
-
-    def format_outputs(self, outputs):
-        return [self.format_output(output) for output in outputs]
-
     def token_to_tag(self, token, index, predicate_start, predicate_end):
         if index == predicate_start:
             return BIO.B
@@ -108,6 +93,21 @@ class DataFormatter():
     ##################
     # OUTPUT SECTION #
     ##################
+
+    def format_output(self, sentence_output) -> FormattedSentenceOutput:
+        sentence_result: FormattedSentenceOutput = []
+        max_indexes = tf.math.top_k(sentence_output, len(BIO)).indices.numpy()
+        for token_output, max_index in zip(sentence_output, max_indexes):
+            result: FormattedTokenOutput = []
+            for i in max_index:
+                tag = BIO(i)
+                score = token_output[i]
+                result.append((tag, score))
+            sentence_result.append(result)
+        return sentence_result
+
+    def format_outputs(self, outputs):
+        return [self.format_output(output) for output in outputs]
 
     def print_elements(self, tokens: list[str], tags: list[BIO], scores: Union[list[float], None] = None):
         lines: list[list[str]] = []
