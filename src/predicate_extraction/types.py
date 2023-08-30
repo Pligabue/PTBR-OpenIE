@@ -1,10 +1,11 @@
 from enum import Enum
-from typing import Tuple, TypedDict, Union
 import tensorflow as tf
+
+from typing import TypedDict, Union
 
 SentenceInput = list[int]
 SentenceInputs = list[SentenceInput]
-SentenceMapValue = TypedDict("SentenceMapValue", {"input": SentenceInput, "output": tf.Tensor})
+SentenceMapValue = TypedDict("SentenceMapValue", {"input": SentenceInput, "output": tf.Tensor, "count": int})
 SentenceMap = dict[Union[str, int], SentenceMapValue]
 ModelInput = list[SentenceInput]
 

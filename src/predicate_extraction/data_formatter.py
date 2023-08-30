@@ -8,8 +8,8 @@ from typing import Union
 from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
-from .types import (BIO, SentenceMap, SentenceInput, SentenceInputs,
-                    FormattedTokenOutput,FormattedSentenceOutput)
+from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceInputs,
+                    FormattedTokenOutput, FormattedSentenceOutput)
 
 
 class DataFormatter():
@@ -42,14 +42,15 @@ class DataFormatter():
             return BIO.S
         return BIO.O
 
-    def add_training_sentence_data(self, sentence: str, sentence_map: SentenceMap, merge_repeated=True):
+    def add_training_sentence_data(self, sentence: str, sentence_map: SentenceMap, merge_repeated=False):
         split_sentence = self.split_on_predicate(sentence)
-        original_sentence = " ".join(split_sentence)
+        original_sentence = " ".join(split_sentence).strip()
         key = original_sentence if merge_repeated else sentence
 
-        if original_sentence not in sentence_map:
+        if key not in sentence_map:
             input_tokens = self.format_input(original_sentence)
-            sentence_map[key] = {"input": input_tokens, "output": tf.zeros((len(input_tokens), len(BIO)))}
+            initial_output = tf.zeros((len(input_tokens), len(BIO)))
+            sentence_map[key] = {"input": input_tokens, "output": initial_output, "count": 0}
         else:
             input_tokens = sentence_map[key]["input"]
 
@@ -60,25 +61,14 @@ class DataFormatter():
         output_tags = [self.token_to_tag(t, i, predicate_start, predicate_end) for i, t in enumerate(input_tokens)]
         encoded_output_tags = tf.one_hot([tag.value for tag in output_tags], len(BIO))
         sentence_map[key]["output"] += encoded_output_tags
+        sentence_map[key]["count"] += 1
 
-    def normalize_training_output(self, training_sentence_output: tf.Tensor, weighted=False):
-        output = training_sentence_output
+    def normalize_training_output(self, sentence_map: SentenceMapValue, weighted=False):
         if not weighted:
-            # After add_training_sentence_data, if a token appears once as B and twice as O, its output might
-            # look something like [1, 0, 2, 0], the first position representing B and the third representing O.
-            # However, we are not interested in counting the number of appearences, just if there was an
-            # appearence, so we clip the output, generating [1, 0, 1, 0].
-            output = tf.clip_by_value(training_sentence_output, 0.0, 1.0)
-
-        # The count_nonzero function returns a tensor with the number of different tags that were identified
-        # for each token. Using the previous example, count_nonzero would return 2, as the token appears as
-        # B and as O. What the repeat funcion then does is to repeat this 2 so it has the same shape as the
-        # clipped output, so we can do a element-wise divison. Using the previous example, we would be able
-        # to do [1, 0, 1, 0] / [2, 2, 2, 2] => [0.5, 0, 0.5, 0]).
-        divisors = tf.math.reduce_sum(output, axis=1, keepdims=True)
-        division_matrix = tf.repeat(divisors, len(BIO), axis=1)
-
-        return output / division_matrix
+            clipped = tf.clip_by_value(sentence_map["output"], 0.0, 1.0)
+            normalization_matrix = tf.math.reduce_sum(clipped, axis=1, keepdims=True)
+            return clipped / normalization_matrix
+        return sentence_map["output"] / sentence_map["count"]  # type: ignore
 
     def format_training_data(self, training_sentences: list[str], merge_repeated=True,
                              weighted_merge=False) -> tuple[tf.Tensor, tf.Tensor]:
@@ -87,7 +77,7 @@ class DataFormatter():
             self.add_training_sentence_data(sentence, sentence_map, merge_repeated=merge_repeated)
 
         training_x = [v["input"] for v in sentence_map.values()]
-        training_y = [self.normalize_training_output(v["output"], weighted_merge) for v in sentence_map.values()]
+        training_y = [self.normalize_training_output(v, weighted_merge) for v in sentence_map.values()]
         return tf.stack(training_x), tf.stack(training_y)
 
     ##################
