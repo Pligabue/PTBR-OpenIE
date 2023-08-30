@@ -10,7 +10,8 @@ from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
 from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceInputs,
-                    FormattedTokenOutput, FormattedSentenceOutput, Variation, SentenceVariations)
+                    FormattedTokenOutput, FormattedSentenceOutput, Variation, SentenceVariations,
+                    PredicateMask, PredicateMasks)
 
 
 class DataFormatter():
@@ -198,3 +199,47 @@ class DataFormatter():
             variations.append(sentence_variations)
 
         return variations
+
+    def get_superset(self, mask_a: PredicateMask, mask_b: PredicateMask):
+        a_start = mask_a.index(True)
+        a_end = a_start + mask_a.count(True)
+        b_start = mask_b.index(True)
+        b_end = b_start + mask_b.count(True)
+
+        if (a_start <= b_start and a_end > b_end) or (a_start < b_start and a_end >= b_end):
+            return mask_a
+        if (b_start <= a_start and b_end > a_end) or (b_start < a_start and b_end >= a_end):
+            return mask_b
+        return None
+
+    def replace_subsets(self, masks: PredicateMasks):
+        n_masks = len(masks)
+        replaced_masks = masks[:]
+        for i in range(n_masks):
+            for j in range(i + 1, n_masks):
+                mask = replaced_masks[i]
+                other_mask = replaced_masks[j]
+                if superset_mask := self.get_superset(mask, other_mask):
+                    replaced_masks[i] = superset_mask
+                    replaced_masks[j] = superset_mask
+        return replaced_masks
+
+    def remove_repeated(self, masks: PredicateMasks) -> PredicateMasks:
+        mask_map: dict[str, PredicateMask] = {}
+        for mask in masks:
+            key = "".join([str(v) for v in mask])
+            mask_map[key] = mask
+        return mask_map.values()  # type: ignore
+
+    def build_predicate_masks(self, sentence_outputs: tf.Tensor, acceptance_threshold=0.2):
+        sentence_variation_sets = self.build_variations(sentence_outputs, acceptance_threshold)
+        target_tags = (BIO.B, BIO.I)
+        mask_sets: list[PredicateMasks] = []
+        for sentence_variations in sentence_variation_sets:
+            masks: PredicateMasks = []
+            for variation in sentence_variations:
+                masks.append([tag in target_tags for tag in variation])
+            masks = self.replace_subsets(masks)
+            masks = self.remove_repeated(masks)
+            mask_sets.append(masks)
+        return mask_sets

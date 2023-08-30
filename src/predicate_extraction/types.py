@@ -23,3 +23,5 @@ FormattedSentenceOutput = list[FormattedTokenOutput]
 
 Variation = list[BIO]
 SentenceVariations = list[Variation]
+PredicateMask = list[bool]
+PredicateMasks = list[PredicateMask]
