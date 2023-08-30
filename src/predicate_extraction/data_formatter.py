@@ -9,7 +9,7 @@ from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
 from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceInputs,
-                    FormattedTokenOutput, FormattedSentenceOutput)
+                    FormattedTokenOutput, FormattedSentenceOutput, Variation)
 
 
 class DataFormatter():
@@ -157,3 +157,23 @@ class DataFormatter():
             filtered_sentence_output.append(tags_above_threshold)
 
         return filtered_sentence_output
+
+    def addition_is_valid(self, sequence: Variation, tag: BIO) -> bool:
+        if not sequence:
+            return tag == BIO.S
+
+        if BIO.B in sequence and tag == BIO.B:
+            return False
+
+        last_tag = sequence[-1]
+        if last_tag == BIO.B or last_tag == BIO.I:
+            return tag == BIO.O or tag == BIO.I
+        if last_tag == BIO.O or last_tag == BIO.S:
+            return tag != BIO.I
+        return True
+
+    def sequence_is_valid(self, sequence: Variation) -> bool:
+        has_predicate = BIO.B in sequence
+        has_padding = sequence[0] == BIO.S and sequence[-1] == BIO.S
+        correct_length = len(sequence) == MAX_SENTENCE_SIZE
+        return has_predicate and has_padding and correct_length
