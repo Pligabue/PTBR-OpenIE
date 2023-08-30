@@ -67,3 +67,9 @@ class ArgumentPredictor(DataFormatter):
 
         self.model = tf.keras.Model(inputs=[token_ids, mask], outputs=softmax)
         self.model.layers[2].trainable = False
+
+    def save(self, name: str):
+        path = ARGUMENT_PREDICTION_MODEL_DIR / name
+        if not ARGUMENT_PREDICTION_MODEL_DIR.is_dir():
+            ARGUMENT_PREDICTION_MODEL_DIR.mkdir()
+        self.model.save(path)
