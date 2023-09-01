@@ -1,4 +1,5 @@
 import tensorflow as tf
+from pathlib import Path
 
 from typing import Union
 
@@ -74,3 +75,12 @@ class TripleExtractor(DataFormatter):
             annotation = self.build_annotation(sentence_id, tokens, pred_masks, subj_mask, obj_mask)
             print(annotation)
             print()
+
+    def gen_csv(self, sentences: list[str], filepath: Path, pred_threshold=0.2, arg_threshold=0.15,
+                title='', id_prefix=''):
+        outputs = self.predict(sentences, pred_threshold=pred_threshold, arg_threshold=arg_threshold)
+        df = self.build_df(outputs, id_prefix=id_prefix)
+        with filepath.open('w', encoding="utf-8") as f:
+            f.write(f"# {title}\n")
+            df.to_csv(f, sep=";", index=False, lineterminator='\n')
+        return df
