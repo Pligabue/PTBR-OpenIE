@@ -67,3 +67,7 @@ class DataFormatter():
     def build_df(self, outputs: ArgPredOutputs, id_prefix='') -> pd.DataFrame:
         data = [self.build_row(output, id_prefix=id_prefix) for output in outputs]
         return pd.DataFrame(columns=self.COLUMNS, data=data)
+
+    def doc_to_sentences(self, doc: str):
+        # Temporary splitter
+        return doc.split('.')

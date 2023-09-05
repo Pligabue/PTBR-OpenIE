@@ -1,9 +1,10 @@
 import tensorflow as tf
 from pathlib import Path
+import uuid
 
 from typing import Union
 
-from .constants import DEFAULT_MODEL_NAME
+from .constants import DEFAULT_MODEL_NAME, DEFAULT_PRED_THRESHOLD, DEFAULT_ARG_THREHSOLD
 from .argument_prediction import ArgumentPredictor
 from .predicate_extraction import PredicateExtractor
 from .data_formatter import DataFormatter
@@ -64,23 +65,53 @@ class TripleExtractor(DataFormatter):
         self.argument_predictor.fit(training_sentences, *args, merge_repeated=merge_repeated, epochs=ap_epochs,
                                     early_stopping=early_stopping, callbacks=callbacks, **kwargs)
 
-    def predict(self, sentences: list[str], pred_threshold=0.2, arg_threshold=0.15):
+    def predict(self, sentences: list[str], pred_threshold=DEFAULT_PRED_THRESHOLD,
+                arg_threshold=DEFAULT_ARG_THREHSOLD):
         arg_pred_inputs = self.predicate_extractor(sentences, acceptance_threshold=pred_threshold)
         outputs = self.argument_predictor(arg_pred_inputs, acceptance_threshold=arg_threshold)
         return outputs
 
-    def annotate_sentences(self, sentences: list[str], pred_threshold=0.2, arg_threshold=0.15):
+    def annotate_sentences(self, sentences: list[str], pred_threshold=DEFAULT_PRED_THRESHOLD,
+                           arg_threshold=DEFAULT_ARG_THREHSOLD):
         outputs = self.predict(sentences, pred_threshold=pred_threshold, arg_threshold=arg_threshold)
         for sentence_id, tokens, pred_masks, subj_mask, obj_mask in outputs:
             annotation = self.build_annotation(sentence_id, tokens, pred_masks, subj_mask, obj_mask)
             print(annotation)
             print()
 
-    def gen_csv(self, sentences: list[str], filepath: Path, pred_threshold=0.2, arg_threshold=0.15,
-                title='', id_prefix=''):
+    def gen_csv(self, sentences: list[str], filepath: Path, pred_threshold=DEFAULT_PRED_THRESHOLD,
+                arg_threshold=DEFAULT_ARG_THREHSOLD, title='', id_prefix=''):
         outputs = self.predict(sentences, pred_threshold=pred_threshold, arg_threshold=arg_threshold)
         df = self.build_df(outputs, id_prefix=id_prefix)
         with filepath.open('w', encoding="utf-8") as f:
             f.write(f"# {title}\n")
             df.to_csv(f, sep=";", index=False, lineterminator='\n')
         return df
+
+    def process_doc(self, doc_path: Path, csv_path: Union[Path, None] = None,
+                    pred_threshold=DEFAULT_PRED_THRESHOLD, arg_threshold=DEFAULT_ARG_THREHSOLD):
+        csv_path = csv_path or doc_path.with_suffix('.csv')
+
+        with doc_path.open("w", encoding="utf-8") as f:
+            doc = f.read()
+        sentences = self.doc_to_sentences(doc)
+        id_prefix = str(uuid.uuid4())
+
+        return self.gen_csv(
+            sentences,
+            csv_path,
+            title=doc_path.resolve().as_posix(),
+            id_prefix=id_prefix,
+            pred_threshold=pred_threshold,
+            arg_threshold=arg_threshold
+        )
+
+    def process_docs(self, doc_dir: list[Path], csv_dir: Path,
+                     pred_threshold=DEFAULT_PRED_THRESHOLD, arg_threshold=DEFAULT_ARG_THREHSOLD):
+        for doc_path in doc_dir:
+            self.process_doc(
+                doc_path,
+                (csv_dir / doc_path.stem).with_suffix(".csv"),
+                pred_threshold=pred_threshold,
+                arg_threshold=arg_threshold
+            )
