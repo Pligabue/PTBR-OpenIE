@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
+from nltk.tokenize import sent_tokenize
 
 from typing import Union
 
@@ -69,5 +70,4 @@ class DataFormatter():
         return pd.DataFrame(columns=self.COLUMNS, data=data)
 
     def doc_to_sentences(self, doc: str):
-        # Temporary splitter
-        return doc.split('.')
+        return sent_tokenize(doc, language="portuguese")
