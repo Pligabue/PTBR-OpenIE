@@ -9,6 +9,7 @@ jupyterlab = "*"
 ipywidgets = "*"
 tensorflow = "==2.10"
 tf-models-official = "*"
+nltk = "==3.8.1"
 
 [dev-packages]
 flake8 = "*"
