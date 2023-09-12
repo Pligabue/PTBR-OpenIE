@@ -5,6 +5,7 @@ description = ""
 authors = ["Pedro Ligabue <pedroligabue@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "triple_extractor_ptbr_pligabue"}]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
