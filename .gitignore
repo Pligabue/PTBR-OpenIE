@@ -1,7 +1,7 @@
 /*venv/
 **/__pycache__/
 **/.ipynb_checkpoints/
-models/**
-!models/*.md
+triple_extractor_ptbr_pligabue/models/**
+!triple_extractor_ptbr_pligabue/models/*.md
 
 .vscode
