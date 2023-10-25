@@ -92,7 +92,7 @@ class TripleExtractor(DataFormatter):
                     pred_threshold=DEFAULT_PRED_THRESHOLD, arg_threshold=DEFAULT_ARG_THREHSOLD):
         csv_path = csv_path or doc_path.with_suffix('.csv')
 
-        with doc_path.open("w", encoding="utf-8") as f:
+        with doc_path.open(encoding="utf-8") as f:
             doc = f.read()
         sentences = self.doc_to_sentences(doc)
         id_prefix = str(uuid.uuid4())
