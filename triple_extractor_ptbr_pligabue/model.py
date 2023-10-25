@@ -100,7 +100,7 @@ class TripleExtractor(DataFormatter):
         return self.gen_csv(
             sentences,
             csv_path,
-            title=doc_path.resolve().as_posix(),
+            title=doc_path.as_posix(),
             id_prefix=id_prefix,
             pred_threshold=pred_threshold,
             arg_threshold=arg_threshold
