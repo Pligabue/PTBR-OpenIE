@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 
 from typing import Union
 
+from ..bert import bert
 from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
@@ -15,9 +16,6 @@ from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceI
 
 
 class DataFormatter():
-    def __init__(self) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained("neuralmind/bert-base-portuguese-cased")
-
     #################
     # INPUT SECTION #
     #################
@@ -30,7 +28,7 @@ class DataFormatter():
         return trimmed_split
 
     def format_input(self, sentence: str) -> SentenceInput:
-        return self.tokenizer.encode(sentence, padding="max_length", max_length=MAX_SENTENCE_SIZE)
+        return bert.tokenizer.encode(sentence, padding="max_length", max_length=MAX_SENTENCE_SIZE)
 
     def format_inputs(self, sentences: list[str]) -> SentenceInputs:
         return [self.format_input(sentence) for sentence in sentences]
@@ -56,7 +54,7 @@ class DataFormatter():
         else:
             input_tokens = sentence_map[key]["input"]
 
-        token_sets = [self.tokenizer.encode(chunk, add_special_tokens=False) for chunk in split_sentence]
+        token_sets = [bert.tokenizer.encode(chunk, add_special_tokens=False) for chunk in split_sentence]
         predicate_start = len(token_sets[0]) + 1    # 1 is added to account for the [CLS] token that is added later
         predicate_end = predicate_start + len(token_sets[1])
 
@@ -120,8 +118,8 @@ class DataFormatter():
             print()
 
     def print_annotated_sentence(self, sentence: str, sentence_output: tf.Tensor, o_threshold=0.0, show_scores=False):
-        token_ids = self.tokenizer.encode(sentence)
-        tokens: list[str] = self.tokenizer.convert_ids_to_tokens(token_ids)  # type: ignore
+        token_ids = bert.tokenizer.encode(sentence)
+        tokens: list[str] = bert.tokenizer.convert_ids_to_tokens(token_ids)  # type: ignore
         formatted_sentence_output = self.format_output(sentence_output)
 
         tags = []

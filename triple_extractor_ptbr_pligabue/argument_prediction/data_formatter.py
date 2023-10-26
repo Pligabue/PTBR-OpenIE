@@ -1,11 +1,10 @@
 import itertools
 import re
 import tensorflow as tf
-from transformers import AutoTokenizer, TFAutoModel, TFBertModel
-
 from typing import Union
 
 from ..predicate_extraction.types import SentenceInput, SentenceInputs, PredicateMasks
+from ..bert import bert
 from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
@@ -16,10 +15,6 @@ from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOu
 
 
 class DataFormatter():
-    def __init__(self) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained("neuralmind/bert-base-portuguese-cased")
-        self.bert: TFBertModel = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased")
-
     #################
     # INPUT SECTION #
     #################
@@ -35,7 +30,7 @@ class DataFormatter():
 
     def get_span(self, sentence, pattern) -> Span:
         split_sentence = self.split_on(sentence, pattern)
-        token_sets: list = self.tokenizer(split_sentence, add_special_tokens=False)["input_ids"]  # type: ignore
+        token_sets: list = bert.tokenizer(split_sentence, add_special_tokens=False)["input_ids"]  # type: ignore
         start = len(token_sets[0]) + 1  # 1 is added to account for the [CLS] token that is added later
         end = start + len(token_sets[1])
         return (start, end)
@@ -46,8 +41,8 @@ class DataFormatter():
 
     def tokenize(self, sen: Union[list[str], str]):
         if isinstance(sen, list):
-            return self.tokenizer(sen, padding="max_length", max_length=MAX_SENTENCE_SIZE)["input_ids"]
-        return self.tokenizer.encode(sen, padding="max_length", max_length=MAX_SENTENCE_SIZE)
+            return bert.tokenizer(sen, padding="max_length", max_length=MAX_SENTENCE_SIZE)["input_ids"]
+        return bert.tokenizer.encode(sen, padding="max_length", max_length=MAX_SENTENCE_SIZE)
 
     def token_to_tag(self, token, index, subject_span: Span, object_span: Span):
         if index in range(*subject_span):

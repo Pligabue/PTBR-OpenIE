@@ -1,10 +1,10 @@
 import tensorflow as tf
-from transformers.models.auto.modeling_tf_auto import TFAutoModel
 import math
 
 from typing import cast, Optional
 
 from ..constants import MAX_SENTENCE_SIZE, ARGUMENT_PREDICTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from ..bert import bert
 from ..predicate_extraction.types import ArgPredInputs
 
 from .constants import N_HEADS, ACCEPTANCE_THRESHOLD
@@ -14,8 +14,6 @@ from .data_formatter import DataFormatter
 
 class ArgumentPredictor(DataFormatter):
     def __init__(self, *layer_units: int, name: Optional[str] = None) -> None:
-        super().__init__()
-
         if name:
             self._load_model(name)
         else:
@@ -37,12 +35,10 @@ class ArgumentPredictor(DataFormatter):
         lstm_units = layer_units[0]
         dense_layer_units = layer_units[1:]
 
-        bert = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased").bert
-
         token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
         mask = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="bool")
 
-        base_embeddings = bert(token_ids)["last_hidden_state"]
+        base_embeddings = bert.encoder(token_ids)["last_hidden_state"]  # type: ignore
         predicate_embeddings = tf.ragged.boolean_mask(base_embeddings, mask)
         mean_pred_embedding = tf.math.reduce_mean(predicate_embeddings, axis=1)
         mean_pred_as_matrix = tf.expand_dims(mean_pred_embedding, axis=1)

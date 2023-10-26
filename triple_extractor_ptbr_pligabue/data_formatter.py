@@ -5,6 +5,8 @@ from nltk.tokenize import sent_tokenize
 
 from typing import Union
 
+from .bert import bert
+
 from .predicate_extraction.types import SentenceId, SentenceInput, PredicateMask
 from .argument_prediction.types import ArgPredOutput, ArgPredOutputs, SubjectMask, ObjectMask
 
@@ -12,15 +14,12 @@ from .argument_prediction.types import ArgPredOutput, ArgPredOutputs, SubjectMas
 class DataFormatter():
     COLUMNS = ['confidence', 'subject', 'relation', 'object', 'subject_id', 'object_id']
 
-    def __init__(self, tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]) -> None:
-        self.tokenizer = tokenizer
-
     def build_annotation(self, sentence_id: SentenceId, tokens: SentenceInput, pred_mask: PredicateMask,
                          subj_mask: SubjectMask, obj_mask: ObjectMask):
         pred_tokens = [t for t, mask_value in zip(tokens, pred_mask) if mask_value]
         subj_tokens = [t for t, mask_value in zip(tokens, subj_mask) if mask_value]
         obj_tokens = [t for t, mask_value in zip(tokens, obj_mask) if mask_value]
-        sentence, pred, subj, obj = self.tokenizer.batch_decode(
+        sentence, pred, subj, obj = bert.tokenizer.batch_decode(
             [tokens, pred_tokens, subj_tokens, obj_tokens],
             skip_special_tokens=True
         )
@@ -56,7 +55,7 @@ class DataFormatter():
         pred_tokens = [t for t, mask_value in zip(tokens, pred_mask) if mask_value]
         subj_tokens = [t for t, mask_value in zip(tokens, subj_mask) if mask_value]
         obj_tokens = [t for t, mask_value in zip(tokens, obj_mask) if mask_value]
-        pred, subj, obj = self.tokenizer.batch_decode(
+        pred, subj, obj = bert.tokenizer.batch_decode(
             [pred_tokens, subj_tokens, obj_tokens],
             skip_special_tokens=True
         )

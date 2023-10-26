@@ -22,8 +22,6 @@ class TripleExtractor(DataFormatter):
         else:
             self.argument_predictor = ArgumentPredictor(*ap_layers_or_name)
 
-        super().__init__(self.predicate_extractor.tokenizer)
-
     @classmethod
     def load(cls, name: str = DEFAULT_MODEL_NAME):
         return cls(name, name)

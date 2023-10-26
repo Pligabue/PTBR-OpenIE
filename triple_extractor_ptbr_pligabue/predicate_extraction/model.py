@@ -1,10 +1,10 @@
 import math
 import tensorflow as tf
-from transformers.models.auto.modeling_tf_auto import TFAutoModel
 
 from typing import cast, Optional
 
 from ..constants import MAX_SENTENCE_SIZE, PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from ..bert import bert
 from .constants import ACCEPTANCE_THRESHOLD, O_THRESHOLD
 from .data_formatter import DataFormatter
 
@@ -37,10 +37,8 @@ class PredicateExtractor(DataFormatter):
             raise Exception(f"Model {str} does not exist.")
 
     def _config_model(self, *dense_layer_units: int):
-        bert = TFAutoModel.from_pretrained("neuralmind/bert-base-portuguese-cased").bert
-
         token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
-        embeddings = bert(token_ids)["last_hidden_state"]
+        embeddings = bert.encoder(token_ids)["last_hidden_state"]  # type: ignore
 
         dense_layers = embeddings
         for layer_units in dense_layer_units:
