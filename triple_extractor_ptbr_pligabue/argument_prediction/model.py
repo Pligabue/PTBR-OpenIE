@@ -100,6 +100,11 @@ class ArgumentPredictor(DataFormatter):
         return self.model.predict(model_inputs)
 
     def __call__(self, inputs: ArgPredInputs, acceptance_threshold=ACCEPTANCE_THRESHOLD) -> ArgPredOutputs:
+        n_predicates = len(inputs[0])
+        
+        if n_predicates == 0:
+            return []
+
         outputs: tf.Tensor = self.predict(inputs)  # type: ignore
         subject_mask_sets, object_mask_sets = self.build_masks(outputs, acceptance_threshold=acceptance_threshold)
 
