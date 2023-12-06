@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from typing import cast, Optional
 
-from ..constants import MAX_SENTENCE_SIZE, PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from ..constants import DEFAULT_SENTENCE_SIZE, PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
 from ..bert import bert
 from .constants import ACCEPTANCE_THRESHOLD, O_THRESHOLD
 from .data_formatter import DataFormatter
@@ -12,12 +12,12 @@ from .types import BIO, ArgPredInputs, PredicateMasks, SentenceIds, SentenceInpu
 
 
 class PredicateExtractor(DataFormatter):
-    def __init__(self, *dense_layer_units: int, name: Optional[str] = None) -> None:
-        super().__init__()
-
+    def __init__(self, *dense_layer_units: int, name: Optional[str] = None,
+                 sentence_size: int = DEFAULT_SENTENCE_SIZE) -> None:
         if name:
             self._load_model(name)
         else:
+            super().__init__(sentence_size)
             self._config_model(*dense_layer_units)
 
     @classmethod
@@ -33,11 +33,12 @@ class PredicateExtractor(DataFormatter):
         if path.is_dir():
             model = tf.keras.models.load_model(path)
             self.model = cast(tf.keras.Model, model)
+            self.sentence_size = self.model.layers[0].input_shape[0][1]
         else:
             raise Exception(f"Model {str} does not exist.")
 
     def _config_model(self, *dense_layer_units: int):
-        token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
+        token_ids = tf.keras.layers.Input(self.sentence_size, dtype="int32")
         embeddings = bert.encoder(token_ids)["last_hidden_state"]  # type: ignore
 
         dense_layers = embeddings

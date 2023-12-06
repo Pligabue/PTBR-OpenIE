@@ -3,7 +3,7 @@ import math
 
 from typing import cast, Optional
 
-from ..constants import MAX_SENTENCE_SIZE, ARGUMENT_PREDICTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from ..constants import DEFAULT_SENTENCE_SIZE, ARGUMENT_PREDICTION_MODEL_DIR, DEFAULT_MODEL_NAME
 from ..bert import bert
 from ..predicate_extraction.types import ArgPredInputs
 
@@ -13,10 +13,12 @@ from .data_formatter import DataFormatter
 
 
 class ArgumentPredictor(DataFormatter):
-    def __init__(self, *layer_units: int, name: Optional[str] = None) -> None:
+    def __init__(self, *layer_units: int, name: Optional[str] = None,
+                 sentence_size: int = DEFAULT_SENTENCE_SIZE) -> None:
         if name:
             self._load_model(name)
         else:
+            super().__init__(sentence_size)
             self._config_model(*layer_units)
 
     @classmethod
@@ -28,6 +30,7 @@ class ArgumentPredictor(DataFormatter):
         if path.is_dir():
             model = tf.keras.models.load_model(path)
             self.model = cast(tf.keras.Model, model)
+            self.sentence_size = self.model.layers[0].input_shape[0][1]
         else:
             raise Exception(f"Model {str} does not exist.")
 
@@ -35,16 +38,16 @@ class ArgumentPredictor(DataFormatter):
         lstm_units = layer_units[0]
         dense_layer_units = layer_units[1:]
 
-        token_ids = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="int32")
-        mask = tf.keras.layers.Input(MAX_SENTENCE_SIZE, dtype="bool")
+        token_ids = tf.keras.layers.Input(self.sentence_size, dtype="int32")
+        mask = tf.keras.layers.Input(self.sentence_size, dtype="bool")
 
         base_embeddings = bert.encoder(token_ids)["last_hidden_state"]  # type: ignore
         predicate_embeddings = tf.ragged.boolean_mask(base_embeddings, mask)
         mean_pred_embedding = tf.math.reduce_mean(predicate_embeddings, axis=1)
         mean_pred_as_matrix = tf.expand_dims(mean_pred_embedding, axis=1)
-        mean_pred_tiled = tf.repeat(mean_pred_as_matrix, MAX_SENTENCE_SIZE, axis=1)
+        mean_pred_tiled = tf.repeat(mean_pred_as_matrix, self.sentence_size, axis=1)
 
-        mask_as_matrix = tf.keras.layers.Reshape([MAX_SENTENCE_SIZE, 1])(mask)
+        mask_as_matrix = tf.keras.layers.Reshape([self.sentence_size, 1])(mask)
         n_repetions = 1 + N_HEADS - (mean_pred_tiled.shape[-1] * 2 + 1) % N_HEADS
         mask_as_matrix = tf.repeat(mask_as_matrix, n_repetions, axis=2)
         mask_as_matrix = tf.cast(mask_as_matrix, float)
@@ -101,7 +104,7 @@ class ArgumentPredictor(DataFormatter):
 
     def __call__(self, inputs: ArgPredInputs, acceptance_threshold=ACCEPTANCE_THRESHOLD) -> ArgPredOutputs:
         n_predicates = len(inputs[0])
-        
+
         if n_predicates == 0:
             return []
 

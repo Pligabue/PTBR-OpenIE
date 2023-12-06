@@ -2,12 +2,11 @@ import itertools
 import re
 import numpy as np
 import tensorflow as tf
-from transformers import AutoTokenizer
 
 from typing import Union
 
 from ..bert import bert
-from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
+from ..constants import (DEFAULT_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
 from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceInputs,
@@ -16,6 +15,9 @@ from .types import (BIO, SentenceMap, SentenceMapValue, SentenceInput, SentenceI
 
 
 class DataFormatter():
+    def __init__(self, sentence_size=DEFAULT_SENTENCE_SIZE):
+        self.sentence_size = sentence_size
+
     #################
     # INPUT SECTION #
     #################
@@ -28,7 +30,7 @@ class DataFormatter():
         return trimmed_split
 
     def format_input(self, sentence: str) -> SentenceInput:
-        return bert.tokenizer.encode(sentence, padding="max_length", max_length=MAX_SENTENCE_SIZE)
+        return bert.tokenizer.encode(sentence, padding="max_length", max_length=self.sentence_size)
 
     def format_inputs(self, sentences: list[str]) -> SentenceInputs:
         return [self.format_input(sentence) for sentence in sentences]
@@ -175,7 +177,7 @@ class DataFormatter():
     def sequence_is_valid(self, sequence: Variation) -> bool:
         has_predicate = BIO.B in sequence
         has_padding = sequence[0] == BIO.S and sequence[-1] == BIO.S
-        correct_length = len(sequence) == MAX_SENTENCE_SIZE
+        correct_length = len(sequence) == self.sentence_size
         return has_predicate and has_padding and correct_length
 
     def build_sentence_variations(self, sentence_output: FormattedSentenceOutput, acceptance_threshold=0.2):

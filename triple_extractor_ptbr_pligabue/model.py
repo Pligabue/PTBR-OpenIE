@@ -4,23 +4,23 @@ import uuid
 
 from typing import Union
 
-from .constants import DEFAULT_MODEL_NAME, DEFAULT_PRED_THRESHOLD, DEFAULT_ARG_THREHSOLD
+from .constants import DEFAULT_MODEL_NAME, DEFAULT_PRED_THRESHOLD, DEFAULT_ARG_THREHSOLD, DEFAULT_SENTENCE_SIZE
 from .argument_prediction import ArgumentPredictor
 from .predicate_extraction import PredicateExtractor
 from .data_formatter import DataFormatter
 
 
 class TripleExtractor(DataFormatter):
-    def __init__(self, pe_layers_or_name: Union[tuple[int], str], ap_layers_or_name: Union[tuple[int], str]) -> None:
+    def __init__(self, pe_layers_or_name: Union[tuple[int], str], ap_layers_or_name: Union[tuple[int], str], sentence_size: int = DEFAULT_SENTENCE_SIZE) -> None:
         if isinstance(pe_layers_or_name, str):
             self.predicate_extractor = PredicateExtractor.load(pe_layers_or_name)
         else:
-            self.predicate_extractor = PredicateExtractor(*pe_layers_or_name)
+            self.predicate_extractor = PredicateExtractor(*pe_layers_or_name, sentence_size=sentence_size)
 
         if isinstance(ap_layers_or_name, str):
             self.argument_predictor = ArgumentPredictor.load(ap_layers_or_name)
         else:
-            self.argument_predictor = ArgumentPredictor(*ap_layers_or_name)
+            self.argument_predictor = ArgumentPredictor(*ap_layers_or_name, sentence_size=sentence_size)
 
     @classmethod
     def load(cls, name: str = DEFAULT_MODEL_NAME):

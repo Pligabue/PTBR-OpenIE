@@ -5,7 +5,7 @@ from typing import Union
 
 from ..predicate_extraction.types import SentenceInput, SentenceInputs, PredicateMasks
 from ..bert import bert
-from ..constants import (MAX_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
+from ..constants import (DEFAULT_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
 
 from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOutput, Mask,
@@ -15,6 +15,9 @@ from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOu
 
 
 class DataFormatter():
+    def __init__(self, sentence_size=DEFAULT_SENTENCE_SIZE):
+        self.sentence_size = sentence_size
+
     #################
     # INPUT SECTION #
     #################
@@ -37,12 +40,12 @@ class DataFormatter():
 
     def span_to_mask(self, span):
         start, finish = span
-        return [start <= i < finish for i in range(MAX_SENTENCE_SIZE)]
+        return [start <= i < finish for i in range(self.sentence_size)]
 
     def tokenize(self, sen: Union[list[str], str]):
         if isinstance(sen, list):
-            return bert.tokenizer(sen, padding="max_length", max_length=MAX_SENTENCE_SIZE)["input_ids"]
-        return bert.tokenizer.encode(sen, padding="max_length", max_length=MAX_SENTENCE_SIZE)
+            return bert.tokenizer(sen, padding="max_length", max_length=self.sentence_size)["input_ids"]
+        return bert.tokenizer.encode(sen, padding="max_length", max_length=self.sentence_size)
 
     def token_to_tag(self, token, index, subject_span: Span, object_span: Span):
         if index in range(*subject_span):
@@ -147,7 +150,7 @@ class DataFormatter():
         has_subject = BIO.SB in sequence
         has_object = BIO.OB in sequence
         has_padding = sequence[0] == BIO.S and sequence[-1] == BIO.S
-        correct_length = len(sequence) == MAX_SENTENCE_SIZE
+        correct_length = len(sequence) == self.sentence_size
         return has_subject and has_object and has_padding and correct_length
 
     def build_sentence_variations(self, sentence_output: FormattedSentenceOutput, acceptance_threshold=0.2):

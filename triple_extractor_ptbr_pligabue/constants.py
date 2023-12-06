@@ -1,7 +1,7 @@
 from pathlib import Path
 
 BERT_MODEL_NAME = "neuralmind/bert-base-portuguese-cased"
-MAX_SENTENCE_SIZE = 128
+DEFAULT_SENTENCE_SIZE = 128
 SUBJECT_PATTERN = r"<SUBJECT>(.*)</SUBJECT>"
 PREDICATE_PATTERN = r"<RELATION>(.*)</RELATION>"
 OBJECT_PATTERN = r"<OBJECT>(.*)</OBJECT>"
