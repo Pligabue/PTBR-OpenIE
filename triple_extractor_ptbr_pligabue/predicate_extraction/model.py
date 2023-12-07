@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from typing import cast, Optional
 
-from ..constants import DEFAULT_SENTENCE_SIZE, PREDICATE_EXTRACTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from ..constants import DEFAULT_SENTENCE_SIZE, MODEL_DIR, PREDICATE_EXTRACTION_MODEL_DIR_NAME, DEFAULT_MODEL_NAME
 from ..bert import bert
 from .constants import ACCEPTANCE_THRESHOLD, O_THRESHOLD
 from .data_formatter import DataFormatter
@@ -20,16 +20,23 @@ class PredicateExtractor(DataFormatter):
             super().__init__(sentence_size)
             self._config_model(*dense_layer_units)
 
+    @staticmethod
+    def full_model_path(name: str):
+        return MODEL_DIR / name
+
+    @staticmethod
+    def pe_model_path(name: str):
+        return PredicateExtractor.full_model_path(name) / PREDICATE_EXTRACTION_MODEL_DIR_NAME
+
     @classmethod
     def load(cls, name: str = DEFAULT_MODEL_NAME):
-        path = PREDICATE_EXTRACTION_MODEL_DIR / name
-        if path.is_dir():
+        if cls.pe_model_path(name).is_dir():
             return cls(name=name)
         else:
             raise Exception(f"Model {str} does not exist.")
 
     def _load_model(self, name: str):
-        path = PREDICATE_EXTRACTION_MODEL_DIR / name
+        path = self.pe_model_path(name)
         if path.is_dir():
             model = tf.keras.models.load_model(path)
             self.model = cast(tf.keras.Model, model)
@@ -52,9 +59,9 @@ class PredicateExtractor(DataFormatter):
         self.model.layers[1].trainable = False
 
     def save(self, name: str = DEFAULT_MODEL_NAME):
-        path = PREDICATE_EXTRACTION_MODEL_DIR / name
-        if not PREDICATE_EXTRACTION_MODEL_DIR.is_dir():
-            PREDICATE_EXTRACTION_MODEL_DIR.mkdir()
+        self.full_model_path(name).mkdir(exist_ok=True)
+        path = self.pe_model_path(name)
+        path.mkdir(exist_ok=True)
         self.model.save(path)
 
     def compile(self, optimizer=None, loss=None, metrics=None):

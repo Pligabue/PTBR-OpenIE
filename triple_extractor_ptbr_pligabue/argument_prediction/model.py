@@ -3,7 +3,7 @@ import math
 
 from typing import cast, Optional
 
-from ..constants import DEFAULT_SENTENCE_SIZE, ARGUMENT_PREDICTION_MODEL_DIR, DEFAULT_MODEL_NAME
+from ..constants import DEFAULT_SENTENCE_SIZE, MODEL_DIR, ARGUMENT_PREDICTION_MODEL_DIR_NAME, DEFAULT_MODEL_NAME
 from ..bert import bert
 from ..predicate_extraction.types import ArgPredInputs
 
@@ -21,12 +21,20 @@ class ArgumentPredictor(DataFormatter):
             super().__init__(sentence_size)
             self._config_model(*layer_units)
 
+    @staticmethod
+    def full_model_path(name: str):
+        return MODEL_DIR / name
+
+    @staticmethod
+    def ap_model_path(name: str):
+        return ArgumentPredictor.full_model_path(name) / ARGUMENT_PREDICTION_MODEL_DIR_NAME
+
     @classmethod
     def load(cls, name: str = DEFAULT_MODEL_NAME):
         return cls(name=name)
 
     def _load_model(self, name: str):
-        path = ARGUMENT_PREDICTION_MODEL_DIR / name
+        path = self.ap_model_path(name)
         if path.is_dir():
             model = tf.keras.models.load_model(path)
             self.model = cast(tf.keras.Model, model)
@@ -70,9 +78,9 @@ class ArgumentPredictor(DataFormatter):
         self.model.layers[2].trainable = False
 
     def save(self, name: str):
-        path = ARGUMENT_PREDICTION_MODEL_DIR / name
-        if not ARGUMENT_PREDICTION_MODEL_DIR.is_dir():
-            ARGUMENT_PREDICTION_MODEL_DIR.mkdir()
+        self.full_model_path(name).mkdir(exist_ok=True)
+        path = self.ap_model_path(name)
+        path.mkdir(exist_ok=True)
         self.model.save(path)
 
     def compile(self, optimizer=None, loss=None, metrics=None):
