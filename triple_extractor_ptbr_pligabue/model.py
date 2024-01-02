@@ -12,7 +12,8 @@ from .data_formatter import DataFormatter
 
 
 class TripleExtractor(DataFormatter):
-    def __init__(self, pe_layers_or_name: Union[tuple[int], str], ap_layers_or_name: Union[tuple[int], str], sentence_size: int = DEFAULT_SENTENCE_SIZE) -> None:
+    def __init__(self, pe_layers_or_name: Union[tuple[int], str], ap_layers_or_name: Union[tuple[int], str],
+                 sentence_size: int = DEFAULT_SENTENCE_SIZE) -> None:
         if isinstance(pe_layers_or_name, str):
             self.predicate_extractor = PredicateExtractor.load(pe_layers_or_name)
         else:
