@@ -4,7 +4,8 @@ import uuid
 
 from typing import Union
 
-from .constants import DEFAULT_MODEL_NAME, DEFAULT_PRED_THRESHOLD, DEFAULT_ARG_THREHSOLD, DEFAULT_SENTENCE_SIZE
+from .constants import (DEFAULT_MODEL_NAME, DEFAULT_PRED_THRESHOLD, DEFAULT_ARG_THREHSOLD, DEFAULT_SENTENCE_SIZE,
+                        MODEL_DIR, PREDICATE_EXTRACTION_MODEL_DIR_NAME, ARGUMENT_PREDICTION_MODEL_DIR_NAME)
 from .argument_prediction import ArgumentPredictor
 from .predicate_extraction import PredicateExtractor
 from .data_formatter import DataFormatter
@@ -21,6 +22,23 @@ class TripleExtractor(DataFormatter):
             self.argument_predictor = ArgumentPredictor.load(ap_layers_or_name)
         else:
             self.argument_predictor = ArgumentPredictor(*ap_layers_or_name, sentence_size=sentence_size)
+
+    @staticmethod
+    def list_models():
+        model_dirs = [path for path in MODEL_DIR.glob("*") if path.is_dir()]
+        pe_dir_names = {d.name for d in model_dirs if (d / PREDICATE_EXTRACTION_MODEL_DIR_NAME).exists()}
+        ap_dir_names = {d.name for d in model_dirs if (d / ARGUMENT_PREDICTION_MODEL_DIR_NAME).exists()}
+
+        complete_dir_names = pe_dir_names & ap_dir_names
+        only_pe_dir_names = (pe_dir_names ^ ap_dir_names) & pe_dir_names
+        only_ap_dir_names = (pe_dir_names ^ ap_dir_names) & ap_dir_names
+
+        if complete_dir_names:
+            print("Complete models:", *sorted(complete_dir_names), sep="\n- ")
+        if only_pe_dir_names:
+            print("Only predicate extraction:", *sorted(only_pe_dir_names), sep="\n- ")
+        if only_ap_dir_names:
+            print("Only argument prediction:", *sorted(only_ap_dir_names), sep="\n- ")
 
     @classmethod
     def load(cls, name: str = DEFAULT_MODEL_NAME):
