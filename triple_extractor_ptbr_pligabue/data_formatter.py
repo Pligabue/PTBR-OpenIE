@@ -1,6 +1,5 @@
 import re
 import pandas as pd
-from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 from nltk.tokenize import sent_tokenize
 
 from typing import Union
@@ -60,7 +59,7 @@ class DataFormatter():
             skip_special_tokens=True
         )
         subj_id = self.build_id(id_prefix, sentence_id, subj, subj_mask)
-        obj_id = self.build_id(id_prefix, sentence_id, subj, obj_mask)
+        obj_id = self.build_id(id_prefix, sentence_id, obj, obj_mask)
 
         return [self.build_element(column, subj, pred, obj, subj_id, obj_id) for column in self.COLUMNS]
 
