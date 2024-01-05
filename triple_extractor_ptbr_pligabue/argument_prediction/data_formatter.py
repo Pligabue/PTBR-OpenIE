@@ -224,3 +224,29 @@ class DataFormatter():
             sentence_subject_mask_sets.append(subject_masks)
             sentence_object_mask_sets.append(object_masks)
         return sentence_subject_mask_sets, sentence_object_mask_sets
+
+    def fix_partial_words(self, tokens: list[str], mask: Mask):
+        fixed_mask: Mask = mask[:]
+
+        n_tokens = len(tokens)
+        for i in range(1, n_tokens):
+            previous_token_is_part_of_mask = fixed_mask[i-1]
+            current_token_is_part_of_mask = fixed_mask[i]
+            current_token_is_part_of_previous_word = tokens[i].startswith("##")
+            current_token_should_be_part_of_mask = (previous_token_is_part_of_mask
+                                                    and not current_token_is_part_of_mask
+                                                    and current_token_is_part_of_previous_word)
+            if current_token_should_be_part_of_mask:
+                fixed_mask[i] = True
+
+        for i in range(n_tokens - 2, 0, -1):
+            current_token_is_part_of_mask = fixed_mask[i]
+            next_token_is_part_of_mask = fixed_mask[i+1]
+            next_token_is_part_of_current_word = tokens[i+1].startswith("##")
+            current_token_should_be_part_of_mask = (not current_token_is_part_of_mask
+                                                    and next_token_is_part_of_mask
+                                                    and next_token_is_part_of_current_word)
+            if current_token_should_be_part_of_mask:
+                fixed_mask[i] = True
+
+        return fixed_mask

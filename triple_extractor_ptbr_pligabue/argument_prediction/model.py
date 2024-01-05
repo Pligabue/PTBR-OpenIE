@@ -110,7 +110,8 @@ class ArgumentPredictor(DataFormatter):
         model_inputs = [tf.constant(sentences), tf.constant(predicate_masks)]
         return self.model.predict(model_inputs)
 
-    def __call__(self, inputs: ArgPredInputs, acceptance_threshold=ACCEPTANCE_THRESHOLD) -> ArgPredOutputs:
+    def __call__(self, inputs: ArgPredInputs, acceptance_threshold=ACCEPTANCE_THRESHOLD,
+                 fix_partial_words=True) -> ArgPredOutputs:
         n_predicates = len(inputs[0])
 
         if n_predicates == 0:
@@ -122,7 +123,12 @@ class ArgumentPredictor(DataFormatter):
         triples: ArgPredOutputs = []
         results = zip(*inputs, subject_mask_sets, object_mask_sets)
         for sentence_id, tokens, predicate_mask, sub_mask_set, obj_mask_set in results:
+            token_strings: list[str] = bert.tokenizer.convert_ids_to_tokens(tokens)  # type: ignore
             for sub_mask, obj_mask in zip(sub_mask_set, obj_mask_set):
+                if fix_partial_words:
+                    predicate_mask = self.fix_partial_words(token_strings, predicate_mask)
+                    sub_mask = self.fix_partial_words(token_strings, sub_mask)
+                    obj_mask = self.fix_partial_words(token_strings, obj_mask)
                 triple = (sentence_id, tokens, predicate_mask, sub_mask, obj_mask)
                 triples.append(triple)
         return triples
