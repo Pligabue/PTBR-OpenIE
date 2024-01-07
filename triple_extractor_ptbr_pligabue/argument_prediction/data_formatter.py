@@ -7,11 +7,12 @@ from ..predicate_extraction.types import SentenceInput, SentenceInputs, Predicat
 from ..bert import bert
 from ..constants import (DEFAULT_SENTENCE_SIZE, OBJECT_PATTERN, PREDICATE_PATTERN,
                          SPECIAL_TOKEN_IDS, SUBJECT_PATTERN)
+from .constants import ALWAYS_REMOVE, STRIP_FROM_START, STRIP_FROM_END
 
 from .types import (BIO, TrainingData, FormattedSentenceOutput, FormattedTokenOutput, Mask,
                     Masks, SubjectMask, SubjectMasks, ObjectMask, ObjectMasks, SubjectMaskSets,
                     ObjectMaskSets, MaskSets, SentenceMap, SentenceMapValue, SentenceVariations,
-                    Span, Variation)
+                    Span, Variation, ArgPredOutput)
 
 
 class DataFormatter():
@@ -250,3 +251,40 @@ class DataFormatter():
                 fixed_mask[i] = True
 
         return fixed_mask
+
+    def clean_triple(self, triple: ArgPredOutput, token_strings: list[str]):
+        _, _, pred_mask, sub_mask, obj_mask = triple
+
+        for i, token_string in enumerate(token_strings):
+            if token_string in ALWAYS_REMOVE:
+                sub_mask[i] = False
+                pred_mask[i] = False
+                obj_mask[i] = False
+
+        subj_start = sub_mask.index(True)
+        obj_start = obj_mask.index(True)
+        try:
+            subj_end = sub_mask.index(False, subj_start) - 1
+        except ValueError:
+            subj_end = len(sub_mask) - 1
+        try:
+            obj_end = obj_mask.index(False, obj_start) - 1
+        except ValueError:
+            obj_end = len(obj_mask) - 1
+
+        if token_strings[subj_start].lower() in STRIP_FROM_START:
+            sub_mask[subj_start] = False
+        if token_strings[obj_start].lower() in STRIP_FROM_START:
+            obj_mask[obj_start] = False
+        if token_strings[subj_end].lower() in STRIP_FROM_END:
+            sub_mask[subj_end] = False
+        if token_strings[obj_end].lower() in STRIP_FROM_END:
+            obj_mask[obj_end] = False
+
+        try:
+            sub_mask.index(True)
+            pred_mask.index(True)
+            obj_mask.index(True)
+            return triple
+        except ValueError:
+            return None

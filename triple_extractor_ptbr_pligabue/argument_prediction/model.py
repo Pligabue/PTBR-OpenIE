@@ -130,5 +130,7 @@ class ArgumentPredictor(DataFormatter):
                     sub_mask = self.fix_partial_words(token_strings, sub_mask)
                     obj_mask = self.fix_partial_words(token_strings, obj_mask)
                 triple = (sentence_id, tokens, predicate_mask, sub_mask, obj_mask)
-                triples.append(triple)
+                clean_triple = self.clean_triple(triple, token_strings)
+                if clean_triple:
+                    triples.append(clean_triple)
         return triples
