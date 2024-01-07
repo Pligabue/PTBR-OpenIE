@@ -30,7 +30,7 @@ class DataFormatter():
         return trimmed_split
 
     def format_input(self, sentence: str) -> SentenceInput:
-        return bert.tokenizer.encode(sentence, padding="max_length", max_length=self.sentence_size)
+        return bert.tokenizer.encode(sentence, padding="max_length", truncation=True, max_length=self.sentence_size)
 
     def format_inputs(self, sentences: list[str]) -> SentenceInputs:
         return [self.format_input(sentence) for sentence in sentences]
