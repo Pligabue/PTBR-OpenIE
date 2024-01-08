@@ -125,12 +125,11 @@ class ArgumentPredictor(DataFormatter):
         for sentence_id, tokens, predicate_mask, sub_mask_set, obj_mask_set in results:
             token_strings: list[str] = bert.tokenizer.convert_ids_to_tokens(tokens)  # type: ignore
             for sub_mask, obj_mask in zip(sub_mask_set, obj_mask_set):
-                if fix_partial_words:
-                    predicate_mask = self.fix_partial_words(token_strings, predicate_mask)
-                    sub_mask = self.fix_partial_words(token_strings, sub_mask)
-                    obj_mask = self.fix_partial_words(token_strings, obj_mask)
                 triple = (sentence_id, tokens, predicate_mask, sub_mask, obj_mask)
-                clean_triple = self.clean_triple(triple, token_strings)
-                if clean_triple:
-                    triples.append(clean_triple)
+                if self.clean_triple(triple, token_strings):
+                    if fix_partial_words:
+                        self.fix_partial_words(token_strings, predicate_mask)
+                        self.fix_partial_words(token_strings, sub_mask)
+                        self.fix_partial_words(token_strings, obj_mask)
+                    triples.append(triple)
         return triples
