@@ -8,5 +8,14 @@ PREPOSITIONS = [
     "desde", "em", "na", "no", "entre", "para", "perante", "por", "pra", "pro", "pras", "pros",
     "pela", "pelo", "pelas", "pelos", "sem", "sob", "sobre", "trás"
 ]
-STRIP_FROM_START = ARTICLES + PREPOSITIONS
-STRIP_FROM_END = ARTICLES + PREPOSITIONS
+PERSONAL_PRONOUNS = ["eu", "tu", "ele", "ela", "nós", "vós", "eles", "elas"]
+RELATIVE_PRONOUNS = [
+    "que", "qual", "quais", "quem", "cujo", "cujos", "cuja", "cujas", "onde", "quanto", "quanta", "quantos", "quantas",
+]
+DEMONSTRATIVE_PRONOUNS = [
+    "este", "esta", "estes", "estas", "isto", "esse", "essa", "esses", "essas", "isso", "aquele", "aquela", "aqueles",
+    "aquelas", "aquilo",
+]
+PRONOUNS = PERSONAL_PRONOUNS + RELATIVE_PRONOUNS + DEMONSTRATIVE_PRONOUNS
+STRIP_FROM_START = ARTICLES + PREPOSITIONS + PRONOUNS
+STRIP_FROM_END = ARTICLES + PREPOSITIONS + PRONOUNS
