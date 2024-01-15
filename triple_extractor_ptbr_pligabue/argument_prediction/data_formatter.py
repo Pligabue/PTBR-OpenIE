@@ -249,6 +249,28 @@ class DataFormatter():
             if current_token_should_be_part_of_mask:
                 mask[i] = True
 
+    def get_mask_dimensions(self, mask: Mask):
+        start = mask.index(True)
+        try:
+            end = mask.index(False, start) - 1
+        except ValueError:
+            end = len(mask) - 1
+        return start, end
+
+    def strip_from_start(self, mask: Mask, token_strings: list[str], removable_tokens: list[str]):
+        start, end = self.get_mask_dimensions(mask)
+        for i in range(start, end + 1):
+            if token_strings[i].lower() not in removable_tokens:
+                return
+            mask[i] = False
+
+    def strip_from_end(self, mask: Mask, token_strings: list[str], removable_tokens: list[str]):
+        start, end = self.get_mask_dimensions(mask)
+        for i in range(end, start - 1, -1):
+            if token_strings[i].lower() not in removable_tokens:
+                return
+            mask[i] = False
+
     def clean_triple(self, triple: ArgPredOutput, token_strings: list[str]):
         _, _, pred_mask, sub_mask, obj_mask = triple
 
@@ -258,27 +280,11 @@ class DataFormatter():
                 pred_mask[i] = False
                 obj_mask[i] = False
 
-        subj_start = sub_mask.index(True)
-        obj_start = obj_mask.index(True)
         try:
-            subj_end = sub_mask.index(False, subj_start) - 1
-        except ValueError:
-            subj_end = len(sub_mask) - 1
-        try:
-            obj_end = obj_mask.index(False, obj_start) - 1
-        except ValueError:
-            obj_end = len(obj_mask) - 1
-
-        if token_strings[subj_start].lower() in STRIP_FROM_START:
-            sub_mask[subj_start] = False
-        if token_strings[obj_start].lower() in STRIP_FROM_START:
-            obj_mask[obj_start] = False
-        if token_strings[subj_end].lower() in STRIP_FROM_END:
-            sub_mask[subj_end] = False
-        if token_strings[obj_end].lower() in STRIP_FROM_END:
-            obj_mask[obj_end] = False
-
-        try:
+            self.strip_from_start(sub_mask, token_strings, STRIP_FROM_START)
+            self.strip_from_start(obj_mask, token_strings, STRIP_FROM_START)
+            self.strip_from_end(sub_mask, token_strings, STRIP_FROM_END)
+            self.strip_from_end(obj_mask, token_strings, STRIP_FROM_END)
             sub_mask.index(True)
             pred_mask.index(True)
             obj_mask.index(True)
