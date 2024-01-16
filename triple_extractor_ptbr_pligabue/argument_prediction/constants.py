@@ -17,5 +17,10 @@ DEMONSTRATIVE_PRONOUNS = [
     "aquelas", "aquilo",
 ]
 PRONOUNS = PERSONAL_PRONOUNS + RELATIVE_PRONOUNS + DEMONSTRATIVE_PRONOUNS
-STRIP_FROM_START = ARTICLES + PREPOSITIONS + PRONOUNS
-STRIP_FROM_END = ARTICLES + PREPOSITIONS + PRONOUNS
+CONJUNCTIONS = [
+    "e", "ainda", "mas", "também", "como", "quanto", "ou", "ora", "quer", "talvez", "nem",
+    "mas", "porém", "senão", "entretanto", "contudo", "então", "portanto", "logo", "pois", "assim",
+]
+
+STRIP_FROM_START = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS
+STRIP_FROM_END = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS
