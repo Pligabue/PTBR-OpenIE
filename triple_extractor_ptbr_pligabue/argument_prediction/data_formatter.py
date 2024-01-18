@@ -140,11 +140,17 @@ class DataFormatter():
 
         last_tag = sequence[-1]
         if last_tag == BIO.SB or last_tag == BIO.SI:
-            return tag == BIO.O or tag == BIO.SI
+            return tag != BIO.SB and tag != BIO.OI
         if last_tag == BIO.OB or last_tag == BIO.OI:
-            return tag == BIO.O or tag == BIO.OI
-        if last_tag == BIO.O or last_tag == BIO.S:
+            return tag != BIO.OB and tag != BIO.SI
+        if last_tag == BIO.O:
             return tag != BIO.SI and tag != BIO.OI
+        if last_tag == BIO.S:
+            is_second_token = len(sequence) == 1
+            if is_second_token:
+                return tag != BIO.SI and tag != BIO.OI
+            else:
+                return tag == BIO.S
         return True
 
     def sequence_is_valid(self, sequence: Variation) -> bool:
