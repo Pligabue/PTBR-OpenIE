@@ -108,8 +108,12 @@ class TripleExtractor(DataFormatter):
         return df
 
     def process_doc(self, doc_path: Path, csv_path: Union[Path, None] = None,
-                    pred_threshold=DEFAULT_PRED_THRESHOLD, arg_threshold=DEFAULT_ARG_THREHSOLD):
+                    pred_threshold=DEFAULT_PRED_THRESHOLD, arg_threshold=DEFAULT_ARG_THREHSOLD,
+                    overwrite=True):
         csv_path = csv_path or doc_path.with_suffix('.csv')
+
+        if csv_path.exists() and not overwrite:
+            return
 
         with doc_path.open(encoding="utf-8") as f:
             doc = f.read()
@@ -132,5 +136,6 @@ class TripleExtractor(DataFormatter):
                 doc_path,
                 (csv_dir / doc_path.stem).with_suffix(".csv"),
                 pred_threshold=pred_threshold,
-                arg_threshold=arg_threshold
+                arg_threshold=arg_threshold,
+                overwrite=False,
             )
