@@ -1,7 +1,9 @@
 ACCEPTANCE_THRESHOLD = 0.15
 N_HEADS = 1
 
-ALWAYS_REMOVE = ["#"]
+SPECIAL_TOKENS = ["[CLS]", "[SEP]", "[PAD]", "[UNK]"]
+PUNCTUATION = ["#", ".", ",", ";", ":", "!", "?", "...", "\"", "'", "(", ")", "[", "]", "{", "}", "/", "\\"]
+
 ARTICLES = ["o", "a", "os", "as", "um", "uma", "uns", "umas"]
 PREPOSITIONS = [
     "a", "à", "ao", "às", "aos", "ante", "após", "até", "com", "contra", "de", "do", "da", "dos", "das",
@@ -21,7 +23,7 @@ CONJUNCTIONS = [
     "e", "ainda", "mas", "também", "como", "quanto", "ou", "ora", "quer", "talvez", "nem",
     "mas", "porém", "senão", "entretanto", "contudo", "então", "portanto", "logo", "pois", "assim",
 ]
-PUNCTUATION = [".", ",", ";", ":", "!", "?", "...", "\"", "'", "(", ")", "[", "]", "{", "}", "/", "\\"]
 
+ALWAYS_REMOVE = SPECIAL_TOKENS + PUNCTUATION
 STRIP_FROM_START = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS + PUNCTUATION
 STRIP_FROM_END = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS + PUNCTUATION
