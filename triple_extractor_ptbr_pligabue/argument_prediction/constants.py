@@ -21,6 +21,7 @@ CONJUNCTIONS = [
     "e", "ainda", "mas", "também", "como", "quanto", "ou", "ora", "quer", "talvez", "nem",
     "mas", "porém", "senão", "entretanto", "contudo", "então", "portanto", "logo", "pois", "assim",
 ]
+PUNCTUATION = [".", ",", ";", ":", "!", "?", "...", "\"", "'", "(", ")", "[", "]", "{", "}", "/", "\\"]
 
-STRIP_FROM_START = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS
-STRIP_FROM_END = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS
+STRIP_FROM_START = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS + PUNCTUATION
+STRIP_FROM_END = ARTICLES + PREPOSITIONS + PRONOUNS + CONJUNCTIONS + PUNCTUATION
