@@ -179,17 +179,16 @@ class DataFormatter():
             variations.append(sentence_variations)
         return variations
 
-    def get_superset(self, mask_a: Mask, mask_b: Mask):
+    def replace_subset(self, mask_a: Mask, mask_b: Mask):
         a_start = mask_a.index(True)
         a_end = a_start + mask_a.count(True)
         b_start = mask_b.index(True)
         b_end = b_start + mask_b.count(True)
 
         if (a_start <= b_start and a_end > b_end) or (a_start < b_start and a_end >= b_end):
-            return mask_a
+            mask_b[:] = mask_a[:]
         if (b_start <= a_start and b_end > a_end) or (b_start < a_start and b_end >= a_end):
-            return mask_b
-        return None
+            mask_a[:] = mask_b[:]
 
     def replace_subsets(self, masks: Masks):
         n_masks = len(masks)
@@ -198,9 +197,7 @@ class DataFormatter():
             for j in range(i + 1, n_masks):
                 mask = replaced_masks[i]
                 other_mask = replaced_masks[j]
-                if superset_mask := self.get_superset(mask, other_mask):
-                    replaced_masks[i] = superset_mask
-                    replaced_masks[j] = superset_mask
+                self.replace_subset(mask, other_mask)
         return replaced_masks
 
     def remove_repeated(self, subj_masks: SubjectMasks, obj_masks: ObjectMasks) -> tuple[SubjectMasks, ObjectMasks]:
