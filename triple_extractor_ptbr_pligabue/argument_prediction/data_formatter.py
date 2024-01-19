@@ -242,7 +242,7 @@ class DataFormatter():
             if current_token_should_be_part_of_mask:
                 mask[i] = True
 
-        for i in range(n_tokens - 2, 0, -1):
+        for i in range(n_tokens - 2, -1, -1):
             current_token_is_part_of_mask = mask[i]
             next_token_is_part_of_mask = mask[i+1]
             next_token_is_part_of_current_word = tokens[i+1].startswith("##")
