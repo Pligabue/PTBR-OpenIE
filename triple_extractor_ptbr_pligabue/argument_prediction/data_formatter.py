@@ -277,17 +277,18 @@ class DataFormatter():
     def clean_triple(self, triple: ArgPredOutput, token_strings: list[str]):
         _, _, pred_mask, sub_mask, obj_mask = triple
 
-        for i, token_string in enumerate(token_strings):
-            if token_string in ALWAYS_REMOVE:
-                sub_mask[i] = False
-                pred_mask[i] = False
-                obj_mask[i] = False
-
         try:
             self.strip_from_start(sub_mask, token_strings, STRIP_FROM_START)
             self.strip_from_start(obj_mask, token_strings, STRIP_FROM_START)
             self.strip_from_end(sub_mask, token_strings, STRIP_FROM_END)
             self.strip_from_end(obj_mask, token_strings, STRIP_FROM_END)
+
+            for i, token_string in enumerate(token_strings):
+                if token_string in ALWAYS_REMOVE:
+                    sub_mask[i] = False
+                    pred_mask[i] = False
+                    obj_mask[i] = False
+
             sub_mask.index(True)
             pred_mask.index(True)
             obj_mask.index(True)
